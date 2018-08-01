@@ -2945,6 +2945,15 @@ bool Sema::AttachBaseSpecifiers(CXXRecordDecl *Class,
       if (Bases.size() > 1)
         NoteIndirectBases(Context, IndirectBaseTypes, NewBaseType);
 
+      // Diagnose direct private or protected inheritance from
+      // `std::enable_shared_from_this`, which is almost always a mistake.
+      QualType EnableSharedFromThis = ..;
+      if (KnownBase->getType() == EnableSharedFromThis &&
+          (KnownBase->getAccessSpecifier() == AS_private ||
+            KnownBase->getAccessSpecifier() == AS_protected)) {
+        Diag(KnownBase->getBeginLoc(), diag::warn_enable_shared_from_this_inaccessible_base);
+      }
+
       if (const RecordType *Record = NewBaseType->getAs<RecordType>()) {
         const CXXRecordDecl *RD = cast<CXXRecordDecl>(Record->getDecl());
         if (Class->isInterface() &&

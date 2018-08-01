@@ -7881,6 +7881,11 @@ def err_conditional_vector_mismatched
     : Error<"vector operands to the vector conditional must be the same type "
             "%diff{($ and $)|}0,1}">;
 
+// TODO: Is this the right place to add this warning?
+def warn_enable_shared_from_this_inaccessible_base : Warning<
+  "%0 directly inherits from enable_shared_from_this, but that base class is "
+  "never accessible">;
+
 def err_throw_incomplete : Error<
   "cannot throw object of incomplete type %0">;
 def err_throw_incomplete_ptr : Error<
