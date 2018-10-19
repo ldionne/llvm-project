@@ -3286,6 +3286,11 @@ void Sema::mergeDeclAttributes(NamedDecl *New, Decl *Old,
     }
   }
 
+  // This redeclaration adds a visibility attribute.
+  if (New->hasAttr<VisibilityAttr>() && !Old->hasAttr<VisibilityAttr>()) {
+    mergeDeclAttribute(*this, dyn_cast<NamedDecl>(Old), New->getAttr<VisibilityAttr>(), AMK_None);
+  }
+
   // Redeclaration adds code-seg attribute.
   const auto *NewCSA = New->getAttr<CodeSegAttr>();
   if (NewCSA && !Old->hasAttr<CodeSegAttr>() &&
