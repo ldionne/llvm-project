@@ -8,7 +8,7 @@
 
 // <iostream>
 
-// istream wcerr;
+// wostream wcerr;
 
 // FILE_DEPENDENCIES: %t.exe
 // RUN: %{build}

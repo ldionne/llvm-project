@@ -8,7 +8,7 @@
 
 // <iostream>
 
-// istream cerr;
+// ostream cerr;
 
 // FILE_DEPENDENCIES: %t.exe
 // RUN: %{build}

@@ -8,7 +8,7 @@
 
 // <iostream>
 
-// istream wclog;
+// wostream wclog;
 
 // FILE_DEPENDENCIES: %t.exe
 // RUN: %{build}

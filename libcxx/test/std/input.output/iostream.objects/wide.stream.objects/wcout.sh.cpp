@@ -10,7 +10,7 @@
 
 // <iostream>
 
-// istream wcout;
+// wostream wcout;
 
 // FILE_DEPENDENCIES: %t.exe
 // RUN: %{build}

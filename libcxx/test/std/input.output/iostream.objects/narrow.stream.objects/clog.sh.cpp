@@ -8,7 +8,7 @@
 
 // <iostream>
 
-// istream clog;
+// ostream clog;
 
 // FILE_DEPENDENCIES: %t.exe
 // RUN: %{build}

@@ -10,7 +10,7 @@
 
 // <iostream>
 
-// istream wcin;
+// wistream wcin;
 
 // FILE_DEPENDENCIES: %t.exe
 // RUN: %{build}

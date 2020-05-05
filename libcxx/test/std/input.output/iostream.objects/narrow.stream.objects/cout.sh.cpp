@@ -10,7 +10,7 @@
 
 // <iostream>
 
-// istream cout;
+// ostream cout;
 
 // FILE_DEPENDENCIES: %t.exe
 // RUN: %{build}
