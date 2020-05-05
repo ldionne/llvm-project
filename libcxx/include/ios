@@ -367,30 +367,30 @@ protected:
 
 private:
     // All data members must be scalars
-    fmtflags        __fmtflags_;
-    streamsize      __precision_;
-    streamsize      __width_;
-    iostate         __rdstate_;
-    iostate         __exceptions_;
-    void*           __rdbuf_;
-    void*           __loc_;
-    event_callback* __fn_;
-    int*            __index_;
-    size_t          __event_size_;
-    size_t          __event_cap_;
+    fmtflags           __fmtflags_;
+    streamsize         __precision_;
+    atomic<streamsize> __width_;
+    iostate            __rdstate_;
+    iostate            __exceptions_;
+    void*              __rdbuf_;
+    void*              __loc_;
+    event_callback*    __fn_;
+    int*               __index_;
+    size_t             __event_size_;
+    size_t             __event_cap_;
 // TODO(EricWF): Enable this for both Clang and GCC. Currently it is only
 // enabled with clang.
 #if defined(_LIBCPP_HAS_C_ATOMIC_IMP) && !defined(_LIBCPP_HAS_NO_THREADS)
     static atomic<int> __xindex_;
 #else
-    static int      __xindex_;
+    static int         __xindex_;
 #endif
-    long*           __iarray_;
-    size_t          __iarray_size_;
-    size_t          __iarray_cap_;
-    void**          __parray_;
-    size_t          __parray_size_;
-    size_t          __parray_cap_;
+    long*              __iarray_;
+    size_t             __iarray_size_;
+    size_t             __iarray_cap_;
+    void**             __parray_;
+    size_t             __parray_size_;
+    size_t             __parray_cap_;
 };
 
 //enum class io_errc
@@ -527,9 +527,7 @@ inline _LIBCPP_INLINE_VISIBILITY
 streamsize
 ios_base::width(streamsize __wide)
 {
-    streamsize __r = __width_;
-    __width_ = __wide;
-    return __r;
+    return __width_.exchange(__wide);
 }
 
 // iostate
@@ -689,7 +687,7 @@ protected:
     void set_rdbuf(basic_streambuf<char_type, traits_type>* __sb);
 private:
     basic_ostream<char_type, traits_type>* __tie_;
-    mutable int_type __fill_;
+    mutable atomic<int_type> __fill_;
 };
 
 template <class _CharT, class _Traits>
@@ -783,6 +781,8 @@ inline _LIBCPP_INLINE_VISIBILITY
 _CharT
 basic_ios<_CharT, _Traits>::fill() const
 {
+    // This should technically be an atomic compare exchange, however
+    // it's fine if we set the fill to ' ' redundantly.
     if (traits_type::eq_int_type(traits_type::eof(), __fill_))
         __fill_ = widen(' ');
     return __fill_;
@@ -793,9 +793,7 @@ inline _LIBCPP_INLINE_VISIBILITY
 _CharT
 basic_ios<_CharT, _Traits>::fill(char_type __ch)
 {
-    char_type __r = __fill_;
-    __fill_ = __ch;
-    return __r;
+    return __fill_.exchange(__ch);
 }
 
 template <class _CharT, class _Traits>
@@ -807,7 +805,7 @@ basic_ios<_CharT, _Traits>::copyfmt(const basic_ios& __rhs)
         __call_callbacks(erase_event);
         ios_base::copyfmt(__rhs);
         __tie_ = __rhs.__tie_;
-        __fill_ = __rhs.__fill_;
+        __fill_ = __rhs.__fill_.load();
         __call_callbacks(copyfmt_event);
         exceptions(__rhs.exceptions());
     }
@@ -822,7 +820,7 @@ basic_ios<_CharT, _Traits>::move(basic_ios& __rhs)
     ios_base::move(__rhs);
     __tie_ = __rhs.__tie_;
     __rhs.__tie_ = 0;
-    __fill_ = __rhs.__fill_;
+    __fill_ = __rhs.__fill_.load();
 }
 
 template <class _CharT, class _Traits>
@@ -832,7 +830,7 @@ basic_ios<_CharT, _Traits>::swap(basic_ios& __rhs) _NOEXCEPT
 {
     ios_base::swap(__rhs);
     _VSTD::swap(__tie_, __rhs.__tie_);
-    _VSTD::swap(__fill_, __rhs.__fill_);
+    __fill_ = __rhs.__fill_.exchange(__fill_);
 }
 
 template <class _CharT, class _Traits>

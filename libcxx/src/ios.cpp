@@ -333,7 +333,7 @@ ios_base::copyfmt(const ios_base& rhs)
     // Got everything we need.  Copy everything but __rdstate_, __rdbuf_ and __exceptions_
     __fmtflags_ = rhs.__fmtflags_;
     __precision_ = rhs.__precision_;
-    __width_ = rhs.__width_;
+    __width_ = rhs.__width_.load();
     locale& lhs_loc = *reinterpret_cast<locale*>(&__loc_);
     const locale& rhs_loc = *reinterpret_cast<const locale*>(&rhs.__loc_);
     lhs_loc = rhs_loc;
@@ -374,7 +374,7 @@ ios_base::move(ios_base& rhs)
     // *this is uninitialized
     __fmtflags_ = rhs.__fmtflags_;
     __precision_ = rhs.__precision_;
-    __width_ = rhs.__width_;
+    __width_ = rhs.__width_.load();
     __rdstate_ = rhs.__rdstate_;
     __exceptions_ = rhs.__exceptions_;
     __rdbuf_ = 0;
@@ -407,7 +407,7 @@ ios_base::swap(ios_base& rhs) _NOEXCEPT
 {
     _VSTD::swap(__fmtflags_, rhs.__fmtflags_);
     _VSTD::swap(__precision_, rhs.__precision_);
-    _VSTD::swap(__width_, rhs.__width_);
+    __width_ = rhs.__width_.exchange(__width_.load());
     _VSTD::swap(__rdstate_, rhs.__rdstate_);
     _VSTD::swap(__exceptions_, rhs.__exceptions_);
     locale& lhs_loc = *reinterpret_cast<locale*>(&__loc_);
