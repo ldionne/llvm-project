@@ -19,7 +19,6 @@
 #include <cassert>
 
 #include "test_macros.h"
-#include "DefaultOnly.h"
 #include "allocators.h"
 #include "../alloc_first.h"
 #include "../alloc_last.h"
@@ -33,11 +32,20 @@ struct NonDefaultConstructible {
   explicit constexpr NonDefaultConstructible(int) {}
 };
 
-
 struct DerivedFromAllocArgT : std::allocator_arg_t {};
 
-int main(int, char**)
-{
+struct DefaultOnly {
+    constexpr DefaultOnly() : data_(-1) { }
+    DefaultOnly(const DefaultOnly&) = delete;
+    DefaultOnly& operator=(const DefaultOnly&) = delete;
+    constexpr friend bool operator==(DefaultOnly const& a, DefaultOnly const& b) {
+        return a.data_ == b.data_;
+    }
+private:
+    int data_;
+};
+
+TEST_CONSTEXPR_CXX20 bool test() {
     {
         std::tuple<> t(std::allocator_arg, A1<int>());
     }
@@ -111,5 +119,14 @@ int main(int, char**)
         (void)t2;
     }
 
-  return 0;
+    return true;
+}
+
+int main(int, char**)
+{
+    test();
+#if TEST_STD_VER > 17
+    static_assert(test());
+#endif
+    return 0;
 }

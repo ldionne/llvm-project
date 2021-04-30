@@ -24,8 +24,7 @@
 #include "../alloc_first.h"
 #include "../alloc_last.h"
 
-int main(int, char**)
-{
+TEST_CONSTEXPR_CXX20 bool test() {
     {
         typedef std::pair<long, int> T0;
         typedef std::tuple<long long, double> T1;
@@ -64,5 +63,14 @@ int main(int, char**)
         std::tuple<int, int> t(derived, A1<int>(), p);
     }
 
+    return true;
+}
+
+int main(int, char**)
+{
+    test();
+#if TEST_STD_VER > 17
+    static_assert(test());
+#endif
     return 0;
 }
