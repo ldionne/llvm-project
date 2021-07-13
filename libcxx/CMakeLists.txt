@@ -948,7 +948,6 @@ endif()
 
 if (LIBCXX_INCLUDE_TESTS)
   add_subdirectory(test)
-  add_subdirectory(lib/abi)
   if (LIBCXX_STANDALONE_BUILD)
     include(AddLLVM) # for get_llvm_lit_path
     # Make sure the llvm-lit script is generated into the bin directory, and

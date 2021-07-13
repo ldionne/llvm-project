@@ -61,6 +61,12 @@ DEFAULT_FEATURES = [
             int main(int, char**) { return x.is_lock_free(); }
           """)),
 
+  Feature(name='has-abi-list',
+          when=lambda cfg: hash abi parameters and look if file is there,
+          actions=lambda cfg: [
+            AddSubstitution('%{abi-list-file}', XXXXXXX)
+          ]),
+
   Feature(name='apple-clang',                                                                                                      when=_isAppleClang),
   Feature(name=lambda cfg: 'apple-clang-{__clang_major__}'.format(**compilerMacros(cfg)),                                          when=_isAppleClang),
   Feature(name=lambda cfg: 'apple-clang-{__clang_major__}.{__clang_minor__}'.format(**compilerMacros(cfg)),                        when=_isAppleClang),

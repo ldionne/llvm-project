@@ -49,19 +49,3 @@ After branching for an LLVM release:
 1. Update ``_LIBCPP_VERSION`` in ``include/__config``
 2. Update the ``include/__libcpp_version`` file
 3. Update the version number in ``docs/conf.py``
-
-Exporting new symbols from the library
-======================================
-
-When exporting new symbols from libc++, you must update the ABI lists located in ``lib/abi``.
-To test whether the lists are up-to-date, please run the target ``check-cxx-abilist``.
-To regenerate the lists, use the target ``generate-cxx-abilist``.
-The ABI lists must be updated for all supported platforms; currently Linux and
-Apple.  If you don't have access to one of these platforms, you can download an
-updated list from the failed build at
-`Buildkite <https://buildkite.com/llvm-project/libcxx-ci>`__.
-Look for the failed build and select the ``artifacts`` tab. There, download the
-abilist for the platform, e.g.:
-
-* C++20 for the Linux platform.
-* MacOS C++20 for the Apple platform.
