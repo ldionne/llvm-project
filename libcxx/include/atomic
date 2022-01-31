@@ -909,12 +909,12 @@ struct __cxx_atomic_base_impl {
 
 _LIBCPP_INLINE_VISIBILITY inline
 void __cxx_atomic_thread_fence(memory_order __order) _NOEXCEPT {
-    __c11_atomic_thread_fence(static_cast<__memory_order_underlying_t>(__order));
+    __c11_atomic_thread_fence(static_cast<int>(static_cast<__memory_order_underlying_t>(__order)));
 }
 
 _LIBCPP_INLINE_VISIBILITY inline
 void __cxx_atomic_signal_fence(memory_order __order) _NOEXCEPT {
-    __c11_atomic_signal_fence(static_cast<__memory_order_underlying_t>(__order));
+    __c11_atomic_signal_fence(static_cast<int>(static_cast<__memory_order_underlying_t>(__order)));
 }
 
 template<class _Tp>

@@ -255,7 +255,7 @@ public:
                (treat_as_floating_point<rep>::value ||
                !treat_as_floating_point<_Rep2>::value)
             >::type* = nullptr)
-                : __rep_(__r) {}
+                : __rep_(static_cast<rep>(__r)) {}
 
     // conversions
     template <class _Rep2, class _Period2>
