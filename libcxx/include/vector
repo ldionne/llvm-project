@@ -350,8 +350,13 @@ public:
     typedef typename __alloc_traits::difference_type        difference_type;
     typedef typename __alloc_traits::pointer                pointer;
     typedef typename __alloc_traits::const_pointer          const_pointer;
+#if defined(_LIBCPP_HARDEN_ENABLE_ITERATOR_OWNERSHIP) || defined(_LIBCPP_ENABLE_DEBUG_MODE) // TODO: Remove reference to debug mode
+    typedef __control_block_iter<pointer>                   iterator;
+    typedef __control_block_iter<const_pointer>             const_iterator;
+#else
     typedef __wrap_iter<pointer>                            iterator;
     typedef __wrap_iter<const_pointer>                      const_iterator;
+#endif
     typedef std::reverse_iterator<iterator>               reverse_iterator;
     typedef std::reverse_iterator<const_iterator>         const_reverse_iterator;
 
@@ -493,11 +498,19 @@ public:
     // TODO: find a good place for this
 private:
     _LIBCPP_CONSTEXPR_SINCE_CXX20 _LIBCPP_HIDE_FROM_ABI iterator __make_iter(pointer __ptr) {
+#ifdef _LIBCPP_DEBUG_ITERATOR_BOUNDS_CHECKING
+        return std::__make_control_block_iter(__ptr, __control_block_);
+#else
         return iterator(this, __ptr);
+#endif
     }
 
     _LIBCPP_CONSTEXPR_SINCE_CXX20 _LIBCPP_HIDE_FROM_ABI const_iterator __make_const_iter(const_pointer __ptr) {
+#ifdef _LIBCPP_DEBUG_ITERATOR_BOUNDS_CHECKING
+        return std::__make_control_block_iter(__ptr, __control_block_);
+#else
         return const_iterator(this, __ptr);
+#endif
     }
 
 public:
@@ -663,6 +676,9 @@ private:
     pointer __end_ = nullptr;
     __compressed_pair<pointer, allocator_type> __end_cap_ =
         __compressed_pair<pointer, allocator_type>(nullptr, __default_init_tag());
+#ifdef _LIBCPP_HARDEN_ENABLE_ITERATOR_OWNERSHIP
+    shared_ptr<_SequenceContainerControlBlock> __control_block;
+#endif
 
     _LIBCPP_HIDE_FROM_ABI void __invalidate_iterators_past(pointer __new_last);
 
@@ -779,6 +795,9 @@ private:
     }
     _LIBCPP_CONSTEXPR_SINCE_CXX20 _LIBCPP_HIDE_FROM_ABI ~_ConstructTransaction() {
       __v_.__end_ = __pos_;
+#ifdef _LIBCPP_HARDEN_ENABLE_ITERATOR_OWNERSHIP
+      __v_.__control_block_->__update_bounds(__v_.__begin_, __v_.__end_);
+#endif
 #ifndef _LIBCPP_HAS_NO_ASAN
       if (__pos_ != __new_end_) {
         __v_.__annotate_shrink(__new_end_ - __v_.__begin_);
@@ -826,6 +845,9 @@ private:
     while (__new_last != __soon_to_be_end)
         __alloc_traits::destroy(__alloc(), std::__to_address(--__soon_to_be_end));
     this->__end_ = __new_last;
+#ifdef _LIBCPP_HARDEN_ENABLE_ITERATOR_OWNERSHIP
+    this->__control_block_->__update_bounds(this->__begin_, this->__end_);
+#endif
   }
 
   _LIBCPP_CONSTEXPR_SINCE_CXX20 _LIBCPP_HIDE_FROM_ABI
@@ -1646,8 +1668,8 @@ _LIBCPP_CONSTEXPR_SINCE_CXX20
 typename vector<_Tp, _Allocator>::iterator
 vector<_Tp, _Allocator>::insert(const_iterator __position, const_reference __x)
 {
-    _LIBCPP_DEBUG_ASSERT(__get_const_db()->__find_c_from_i(std::addressof(__position)) == this,
-                         "vector::insert(iterator, x) called with an iterator not referring to this vector");
+    _LIBCPP_DEBUG_ASSERT_ITERATOR_OWNERSHIP(__control_block_->__owns(__position),
+        "vector::insert(iterator, x) called with an iterator not referring to this vector");
     pointer __p = this->__begin_ + (__position - begin());
     // We can't compare unrelated pointers inside constant expressions
     if (!__libcpp_is_constant_evaluated() && this->__end_ < this->__end_cap())
@@ -1680,8 +1702,8 @@ _LIBCPP_CONSTEXPR_SINCE_CXX20
 typename vector<_Tp, _Allocator>::iterator
 vector<_Tp, _Allocator>::insert(const_iterator __position, value_type&& __x)
 {
-    _LIBCPP_DEBUG_ASSERT(__get_const_db()->__find_c_from_i(std::addressof(__position)) == this,
-                         "vector::insert(iterator, x) called with an iterator not referring to this vector");
+    _LIBCPP_DEBUG_ASSERT_ITERATOR_OWNERSHIP(__control_block_->__owns(__position),
+        "vector::insert(iterator, x) called with an iterator not referring to this vector");
     pointer __p = this->__begin_ + (__position - begin());
     if (this->__end_ < this->__end_cap())
     {
@@ -1711,8 +1733,8 @@ _LIBCPP_CONSTEXPR_SINCE_CXX20
 typename vector<_Tp, _Allocator>::iterator
 vector<_Tp, _Allocator>::emplace(const_iterator __position, _Args&&... __args)
 {
-    _LIBCPP_DEBUG_ASSERT(__get_const_db()->__find_c_from_i(std::addressof(__position)) == this,
-                         "vector::emplace(iterator, x) called with an iterator not referring to this vector");
+    _LIBCPP_DEBUG_ASSERT_ITERATOR_OWNERSHIP(__control_block_->__owns(__position),
+        "vector::emplace(iterator, x) called with an iterator not referring to this vector");
     pointer __p = this->__begin_ + (__position - begin());
     if (this->__end_ < this->__end_cap())
     {
@@ -1742,8 +1764,8 @@ _LIBCPP_CONSTEXPR_SINCE_CXX20
 typename vector<_Tp, _Allocator>::iterator
 vector<_Tp, _Allocator>::insert(const_iterator __position, size_type __n, const_reference __x)
 {
-    _LIBCPP_DEBUG_ASSERT(__get_const_db()->__find_c_from_i(std::addressof(__position)) == this,
-                         "vector::insert(iterator, n, x) called with an iterator not referring to this vector");
+    _LIBCPP_DEBUG_ASSERT_ITERATOR_OWNERSHIP(__control_block_->__owns(__position),
+        "vector::insert(iterator, n, x) called with an iterator not referring to this vector");
     pointer __p = this->__begin_ + (__position - begin());
     if (__n > 0)
     {
@@ -1785,8 +1807,8 @@ template <class _InputIterator, __enable_if_t<__is_exactly_cpp17_input_iterator<
 _LIBCPP_CONSTEXPR_SINCE_CXX20 typename vector<_Tp, _Allocator>::iterator
 vector<_Tp, _Allocator>::insert(const_iterator __position, _InputIterator __first, _InputIterator __last)
 {
-    _LIBCPP_DEBUG_ASSERT(__get_const_db()->__find_c_from_i(std::addressof(__position)) == this,
-                         "vector::insert(iterator, range) called with an iterator not referring to this vector");
+    _LIBCPP_DEBUG_ASSERT_ITERATOR_OWNERSHIP(__control_block_->__owns(__position),
+        "vector::insert(iterator, range) called with an iterator not referring to this vector");
     difference_type __off = __position - begin();
     pointer __p = this->__begin_ + __off;
     allocator_type& __a = this->__alloc();
@@ -1830,8 +1852,8 @@ template <class _ForwardIterator, __enable_if_t<__is_cpp17_forward_iterator<_For
 _LIBCPP_CONSTEXPR_SINCE_CXX20 typename vector<_Tp, _Allocator>::iterator
 vector<_Tp, _Allocator>::insert(const_iterator __position, _ForwardIterator __first, _ForwardIterator __last)
 {
-    _LIBCPP_DEBUG_ASSERT(__get_const_db()->__find_c_from_i(std::addressof(__position)) == this,
-                         "vector::insert(iterator, range) called with an iterator not referring to this vector");
+    _LIBCPP_DEBUG_ASSERT_ITERATOR_OWNERSHIP(__control_block_->__owns(__position),
+        "vector::insert(iterator, range) called with an iterator not referring to this vector");
     pointer __p = this->__begin_ + (__position - begin());
     difference_type __n = std::distance(__first, __last);
     if (__n > 0)
@@ -1911,7 +1933,9 @@ vector<_Tp, _Allocator>::swap(vector& __x)
     std::swap(this->__end_cap(), __x.__end_cap());
     std::__swap_allocator(this->__alloc(), __x.__alloc(),
         integral_constant<bool,__alloc_traits::propagate_on_container_swap::value>());
-    std::__debug_db_swap(this, std::addressof(__x));
+#ifdef _LIBCPP_HARDEN_ENABLE_ITERATOR_OWNERSHIP
+    std::swap(this->__control_block_, __x.__control_block_);
+#endif
 }
 
 template <class _Tp, class _Allocator>
@@ -2385,7 +2409,9 @@ vector<bool, _Allocator>::__vdeallocate() _NOEXCEPT
     if (this->__begin_ != nullptr)
     {
         __storage_traits::deallocate(this->__alloc(), this->__begin_, __cap());
-        std::__debug_db_invalidate_all(this);
+#ifdef _LIBCPP_HARDEN_ENABLE_ITERATOR_OWNERSHIP
+        this->__control_block_ = nullptr;
+#endif
         this->__begin_ = nullptr;
         this->__size_ = this->__cap() = 0;
     }
