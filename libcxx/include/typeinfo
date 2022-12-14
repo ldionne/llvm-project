@@ -264,17 +264,8 @@ struct __type_info_implementations {
     }
     _LIBCPP_INLINE_VISIBILITY _LIBCPP_ALWAYS_INLINE
     static bool __lt(__type_name_t __lhs, __type_name_t __rhs) _NOEXCEPT {
-      // We order all unique type_infos before the non-unique ones. Then,
-      // unique type_infos are ordered by their address amongst themselves,
-      // and non-unique type_infos are ordered by their string comparison
-      // amongst themselves.
-      bool __lhs_unique = __is_type_name_unique(__lhs);
-      bool __rhs_unique = __is_type_name_unique(__rhs);
-      if (__lhs_unique != __rhs_unique) // unique < non-unique
-        return __lhs_unique;
-      if (__lhs_unique) // use address amongst unique ones
+      if (__is_type_name_unique(__lhs) || __is_type_name_unique(__rhs))
         return __lhs < __rhs;
-      // use string comparison amongst non-unique ones
       return __builtin_strcmp(__type_name_to_string(__lhs), __type_name_to_string(__rhs)) < 0;
     }
 
