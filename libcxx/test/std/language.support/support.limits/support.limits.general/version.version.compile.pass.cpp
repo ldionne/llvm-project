@@ -4715,17 +4715,11 @@
 #   error "__cpp_lib_raw_memory_algorithms should have the value 201606L in c++2b"
 # endif
 
-# if !defined(_LIBCPP_VERSION)
-#   ifndef __cpp_lib_reference_from_temporary
-#     error "__cpp_lib_reference_from_temporary should be defined in c++2b"
-#   endif
-#   if __cpp_lib_reference_from_temporary != 202202L
-#     error "__cpp_lib_reference_from_temporary should have the value 202202L in c++2b"
-#   endif
-# else // _LIBCPP_VERSION
-#   ifdef __cpp_lib_reference_from_temporary
-#     error "__cpp_lib_reference_from_temporary should not be defined because it is unimplemented in libc++!"
-#   endif
+# ifndef __cpp_lib_reference_from_temporary
+#   error "__cpp_lib_reference_from_temporary should be defined in c++2b"
+# endif
+# if __cpp_lib_reference_from_temporary != 202202L
+#   error "__cpp_lib_reference_from_temporary should have the value 202202L in c++2b"
 # endif
 
 # ifndef __cpp_lib_remove_cvref

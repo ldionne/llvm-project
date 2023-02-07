@@ -141,6 +141,9 @@ namespace std
 
     template<class T> struct has_unique_object_representations;         // C++17
 
+    template <class T, class U> struct reference_constructs_from_temporary; // C++23
+    template <class T, class U> struct reference_converts_from_temporary;   // C++23
+
     // Relationships between types:
     template <class T, class U> struct is_same;
     template <class Base, class Derived> struct is_base_of;
@@ -377,6 +380,10 @@ namespace std
         = has_virtual_destructor<T>::value;                              // C++17
       template<class T> inline constexpr bool has_unique_object_representations_v // C++17
         = has_unique_object_representations<T>::value;
+      template<class T, class U> inline constexpr bool reference_constructs_from_temporary_v // C++23
+        = reference_constructs_from_temporary<T, U>::value;
+      template<class T, class U> inline constexpr bool reference_converts_from_temporary_v   // C++23
+        = reference_converts_from_temporary<T, U>::value;
 
       // See C++14 20.10.5, type property queries
       template <class T> inline constexpr size_t alignment_of_v
@@ -521,6 +528,7 @@ namespace std
 #include <__type_traits/maybe_const.h>
 #include <__type_traits/negation.h>
 #include <__type_traits/rank.h>
+#include <__type_traits/reference_from_temporary.h>
 #include <__type_traits/remove_all_extents.h>
 #include <__type_traits/remove_const.h>
 #include <__type_traits/remove_const_ref.h>

@@ -767,6 +767,7 @@ set(files
   __type_traits/predicate_traits.h
   __type_traits/promote.h
   __type_traits/rank.h
+  __type_traits/reference_from_temporary.h
   __type_traits/remove_all_extents.h
   __type_traits/remove_const.h
   __type_traits/remove_const_ref.h

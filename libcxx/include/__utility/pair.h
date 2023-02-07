@@ -202,6 +202,10 @@ struct _LIBCPP_TEMPLATE_VIS pair
 #endif
         typename enable_if<_CheckArgs::template __enable_implicit<_U1, _U2>()>::type* = nullptr
     >
+#if _LIBCPP_STD_VER >= 23
+    requires !(reference_constructs_from_temporary_v<first_type, _U1&&> ||
+               reference_constructs_from_temporary_v<second_type, _U2&&>)
+#endif
     _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR_SINCE_CXX14
     pair(_U1&& __u1, _U2&& __u2)
         _NOEXCEPT_((is_nothrow_constructible<first_type, _U1>::value &&
@@ -212,16 +216,22 @@ struct _LIBCPP_TEMPLATE_VIS pair
     template<class _U1, class _U2, __enable_if_t<
             _CheckArgs::template __is_pair_constructible<_U1&, _U2&>()
     >* = nullptr>
+        requires !(reference_constructs_from_temporary_v<first_type, _U1&> ||
+                   reference_constructs_from_temporary_v<second_type, _U2&>)
     _LIBCPP_HIDE_FROM_ABI constexpr
     explicit(!_CheckArgs::template __is_implicit<_U1&, _U2&>()) pair(pair<_U1, _U2>& __p)
         noexcept((is_nothrow_constructible<first_type, _U1&>::value &&
                   is_nothrow_constructible<second_type, _U2&>::value))
         : first(__p.first), second(__p.second) {}
-#endif
+#endif // _LIBCPP_STD_VER >= 23
 
     template<class _U1, class _U2, typename enable_if<
             _CheckArgs::template __enable_explicit<_U1 const&, _U2 const&>()
     >::type* = nullptr>
+#if _LIBCPP_STD_VER >= 23
+        requires !(reference_constructs_from_temporary_v<first_type, _U1 const&> ||
+                   reference_constructs_from_temporary_v<second_type, _U2 const&>)
+#endif
     _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR_SINCE_CXX14
     explicit pair(pair<_U1, _U2> const& __p)
         _NOEXCEPT_((is_nothrow_constructible<first_type, _U1 const&>::value &&
@@ -231,6 +241,10 @@ struct _LIBCPP_TEMPLATE_VIS pair
     template<class _U1, class _U2, typename enable_if<
             _CheckArgs::template __enable_implicit<_U1 const&, _U2 const&>()
     >::type* = nullptr>
+#if _LIBCPP_STD_VER >= 23
+        requires !(reference_constructs_from_temporary_v<first_type, _U1 const&> ||
+                   reference_constructs_from_temporary_v<second_type, _U2 const&>)
+#endif
     _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR_SINCE_CXX14
     pair(pair<_U1, _U2> const& __p)
         _NOEXCEPT_((is_nothrow_constructible<first_type, _U1 const&>::value &&
@@ -240,6 +254,10 @@ struct _LIBCPP_TEMPLATE_VIS pair
     template<class _U1, class _U2, typename enable_if<
             _CheckArgs::template __enable_explicit<_U1, _U2>()
     >::type* = nullptr>
+#if _LIBCPP_STD_VER >= 23
+        requires !(reference_constructs_from_temporary_v<first_type, _U1&&> ||
+                   reference_constructs_from_temporary_v<second_type, _U2&&>)
+#endif
     _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR_SINCE_CXX14
     explicit pair(pair<_U1, _U2>&&__p)
         _NOEXCEPT_((is_nothrow_constructible<first_type, _U1&&>::value &&
@@ -249,6 +267,10 @@ struct _LIBCPP_TEMPLATE_VIS pair
     template<class _U1, class _U2, typename enable_if<
             _CheckArgs::template __enable_implicit<_U1, _U2>()
     >::type* = nullptr>
+#if _LIBCPP_STD_VER >= 23
+        requires !(reference_constructs_from_temporary_v<first_type, _U1&&> ||
+                   reference_constructs_from_temporary_v<second_type, _U2&&>)
+#endif
     _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR_SINCE_CXX14
     pair(pair<_U1, _U2>&& __p)
         _NOEXCEPT_((is_nothrow_constructible<first_type, _U1&&>::value &&
@@ -259,6 +281,8 @@ struct _LIBCPP_TEMPLATE_VIS pair
     template<class _U1, class _U2, __enable_if_t<
             _CheckArgs::template __is_pair_constructible<const _U1&&, const _U2&&>()
     >* = nullptr>
+        requires !(reference_constructs_from_temporary_v<first_type, const _U1&&> ||
+                   reference_constructs_from_temporary_v<second_type, const _U2&&>)
     _LIBCPP_HIDE_FROM_ABI constexpr
     explicit(!_CheckArgs::template __is_implicit<const _U1&&, const _U2&&>())
     pair(const pair<_U1, _U2>&& __p)
@@ -279,12 +303,57 @@ struct _LIBCPP_TEMPLATE_VIS pair
     }
 
     template <__pair_like _PairLike>
-      requires(is_constructible_v<first_type, decltype(std::get<0>(std::declval<_PairLike&&>()))> &&
-               is_constructible_v<second_type, decltype(std::get<1>(std::declval<_PairLike&&>()))>)
+      requires(
+        is_constructible_v<first_type, decltype(std::get<0>(std::declval<_PairLike&&>()))> &&
+        is_constructible_v<second_type, decltype(std::get<1>(std::declval<_PairLike&&>()))>
+        && !(reference_constructs_from_temporary_v<first_type, decltype(std::get<0>(std::declval<_Tuple&&>()))> ||
+             reference_constructs_from_temporary_v<second_type, decltype(std::get<1>(std::declval<_Tuple&&>()))>)
+      )
     _LIBCPP_HIDE_FROM_ABI constexpr explicit(__pair_like_explicit_wknd<_PairLike>())
         pair(_PairLike&& __p)
         : first(std::get<0>(std::forward<_PairLike>(__p))), second(std::get<1>(std::forward<_PairLike>(__p))) {}
-#  endif
+#  endif // _LIBCPP_STD_VER >= 23
+
+    // C++23 reference_constructs_from_temporary = delete constructors
+#if _LIBCPP_STD_VER >= 23
+    template <class _U1 = _T1, class _U2 = _T2>
+        requires (_CheckArgs::template __is_pair_constructible<_U1, _U2>() &&
+                    (reference_constructs_from_temporary_v<first_type, _U1&&> ||
+                     reference_constructs_from_temporary_v<second_type, _U2&&>))
+    constexpr explicit(!_CheckArgs::template __is_implicit<_U1, _U2>()) pair(_U1&&, _U2&&) = delete;
+
+    template<class _U1, class _U2>
+        requires (_CheckArgs::template __is_pair_constructible<_U1&, _U2&>() &&
+                    (reference_constructs_from_temporary_v<first_type, _U1&> ||
+                     reference_constructs_from_temporary_v<second_type, _U2&>))
+    constexpr explicit(!_CheckArgs::template __is_implicit<_U1&, _U2&>()) pair(pair<_U1, _U2>&) = delete;
+
+    template<class _U1, class _U2>
+        requires (_CheckArgs::template __is_pair_constructible<_U1 const&, _U2 const&>() &&
+                    (reference_constructs_from_temporary_v<first_type, _U1 const&> ||
+                     reference_constructs_from_temporary_v<second_type, _U2 const&>))
+    constexpr explicit(!_CheckArgs::template __is_implicit<_U1 const&, _U2 const&>()) pair(pair<_U1, _U2> const&) = delete;
+
+    template<class _U1, class _U2>
+        requires (_CheckArgs::template __is_pair_constructible<_U1&&, _U2&&>()
+                    (reference_constructs_from_temporary_v<first_type, _U1&&> ||
+                     reference_constructs_from_temporary_v<second_type, _U2&&>))
+    constexpr explicit(!_CheckArgs::template __is_implicit<_U1&&, _U2&&>()) pair(pair<_U1, _U2>&&) = delete;
+
+    template<class _U1, class _U2>
+        requires (_CheckArgs::template __is_pair_constructible<const _U1&&, const _U2&&>() &&
+                    (reference_constructs_from_temporary_v<first_type, _U1 const&&> ||
+                     reference_constructs_from_temporary_v<second_type, _U2 const&&>))
+    constexpr explicit(!_CheckArgs::template __is_implicit<const _U1&&, const _U2&&>()) pair(const pair<_U1, _U2>&&) = delete;
+
+    template<class _Tuple>
+        requires (_CheckArgs::template __is_pair_constructible<decltype(std::get<0>(std::declval<_Tuple&&>())),
+                                                               decltype(std::get<1>(std::declval<_Tuple&&>()))>() &&
+                    (reference_constructs_from_temporary_v<first_type, decltype(std::get<0>(std::declval<_Tuple&&>()))> ||
+                     reference_constructs_from_temporary_v<second_type, decltype(std::get<1>(std::declval<_Tuple&&>()))>))
+    constexpr explicit(!_CheckArgs::template __is_implicit<decltype(std::get<0>(std::declval<_Tuple&&>())),
+                                                           decltype(std::get<1>(std::declval<_Tuple&&>()))>()) pair(_Tuple&&) = delete;
+#endif // _LIBCPP_STD_VER >= 23
 
     template <class... _Args1, class... _Args2>
     _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR_SINCE_CXX20

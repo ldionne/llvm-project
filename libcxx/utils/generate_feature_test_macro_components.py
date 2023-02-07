@@ -601,7 +601,6 @@ feature_test_macros = [ add_version_header(x) for x in [
     "name": "__cpp_lib_reference_from_temporary",
     "values": { "c++2b": 202202 },
     "headers": ["type_traits"],
-    "unimplemented": True,
   }, {
     "name": "__cpp_lib_remove_cvref",
     "values": { "c++20": 201711 },

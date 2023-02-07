@@ -41,6 +41,7 @@ Implemented Papers
 - P1328R1 - ``constexpr type_info::operator==()``
 - P1413R3 - Formatting ``thread::id`` (the ``stacktrace`` is not done yet)
 - P2675R1 - ``format``'s width estimation is too approximate and not forward compatible
+- P2255r2 - A type trait to detect reference binding to temporary
 
 Improvements and New Features
 -----------------------------
