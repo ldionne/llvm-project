@@ -75,6 +75,12 @@ Deprecations and Removals
 - The non-conforming constructor ``std::future_error(std::error_code)`` has been removed. Please use the
   ``std::future_error(std::future_errc)`` constructor provided in C++17 instead.
 
+- Long-standing extensions for ``std::pair``'s constructors and assignment operators that accepted
+  tuple-like types before C++23 have been deprecated. If you need to construct a pair or assign to
+  a pair from a tuple-like type, please make sure to compile with C++23, since that Standard provides
+  support for that out-of-the-box. This extension is deprecated and will be removed due to the difficulty
+  to reconcile changes in new standards with this extension.
+
 Upcoming Deprecations and Removals
 ----------------------------------
 
