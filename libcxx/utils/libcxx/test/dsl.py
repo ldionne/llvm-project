@@ -124,7 +124,7 @@ def sourceBuilds(config, source, additionalFlags=[]):
   any additional flags are passed, they are appended to the compiler invocation.
   """
   with _makeConfigTest(config) as test:
-    with open(test.getSourcePath(), 'w') as sourceFile:
+    with open(test.getFilePath(), 'w') as sourceFile:
       sourceFile.write(source)
     _, _, exitCode, _, _ = _executeWithFakeConfig(test, ['%{{build}} {}'.format(' '.join(additionalFlags))])
     return exitCode == 0
@@ -142,7 +142,7 @@ def programOutput(config, program, args=None):
   if args is None:
     args = []
   with _makeConfigTest(config) as test:
-    with open(test.getSourcePath(), 'w') as source:
+    with open(test.getFilePath(), 'w') as source:
       source.write(program)
     _, err, exitCode, _, buildcmd = _executeWithFakeConfig(test, ['%{build}'])
     if exitCode != 0:
@@ -255,7 +255,7 @@ def compilerMacros(config, flags=''):
   be added to the compiler invocation when generating the macros.
   """
   with _makeConfigTest(config) as test:
-    with open(test.getSourcePath(), 'w') as sourceFile:
+    with open(test.getFilePath(), 'w') as sourceFile:
       sourceFile.write("""
       #if __has_include(<__config_site>)
       #  include <__config_site>
