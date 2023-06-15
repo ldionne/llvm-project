@@ -1,0 +1,38 @@
+// -*- C++ -*-
+//===----------------------------------------------------------------------===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef _LIBCPP___OVERRIDABLE_FUNCTION
+#define _LIBCPP___OVERRIDABLE_FUNCTION
+
+#include <__config>
+#include <cstdint>
+
+_LIBCPP_BEGIN_NAMESPACE_STD
+
+#define _LIBCPP_MAKE_OVERRIDABLE_FUNCTION_DETECTABLE                                                                   \
+  __attribute__((__section__("__TEXT,__lcxx_override,regular,pure_instructions")))
+
+template <class _Ret, class... _Args>
+_LIBCPP_HIDE_FROM_ABI bool __is_function_overridden(_Ret (*__ptr)(_Args...)) noexcept {
+  // The linker places these at the start/end of the __lcxx_override section,
+  // which is where we put the definitions for any overridable function, via
+  // _LIBCPP_MAKE_OVERRIDABLE_FUNCTION_DETECTABLE.
+  //
+  // Placing the function in a separate section allows for this logic to be applied
+  // even in the scenario where clients are statically linking against libc++/libc++abi.
+  extern const uintptr_t __lcxx_override_start __asm("section$start$__TEXT$__lcxx_override");
+  extern const uintptr_t __lcxx_override_end __asm("section$end$__TEXT$__lcxx_override");
+  uintptr_t* __uptr = reinterpret_cast<uintptr_t*>(__ptr);
+
+  return __uptr < &__lcxx_override_start || __uptr > &__lcxx_override_end;
+}
+
+_LIBCPP_END_NAMESPACE_STD
+
+#endif // _LIBCPP___OVERRIDABLE_FUNCTION
