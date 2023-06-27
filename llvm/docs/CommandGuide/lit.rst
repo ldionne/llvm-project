@@ -452,11 +452,6 @@ executed, two important global variables are predefined:
  **environment** A dictionary representing the environment to use when executing
  tests in the suite.
 
- **standalone_tests** When true, mark a directory with tests expected to be run
- standalone. Test discovery is disabled for that directory and
- *--no-indirectly-run-check* is in effect. *lit.suffixes* and *lit.excludes*
- must be empty when this variable is true.
-
  **suffixes** For **lit** test formats which scan directories for tests, this
  variable is a list of suffixes to identify test files.  Used by: *ShTest*.
 

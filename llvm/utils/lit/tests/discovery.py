@@ -144,34 +144,6 @@
 # CHECK-ERROR-INPUT-CONTAINED-NO-TESTS: warning: input 'Inputs/discovery/test.not-txt' contained no tests
 # CHECK-ERROR-INPUT-CONTAINED-NO-TESTS: error: did not discover any tests for provided path(s)
 
-# Check that no error is emitted with --no-indirectly-run-check.
-#
-# RUN: %{lit} \
-# RUN:     %{inputs}/discovery/test.not-txt --no-indirectly-run-check
-
-# Check that a standalone test with no suffixes set is run without any errors.
-#
-# RUN: %{lit} %{inputs}/standalone-tests/true.txt > %t.out
-# RUN: FileCheck --check-prefix=CHECK-STANDALONE < %t.out %s
-#
-# CHECK-STANDALONE: PASS: Standalone tests :: true.txt
-
-# Check that an error is produced if suffixes variable is set for a suite with
-# standalone tests.
-#
-# RUN: not %{lit} %{inputs}/standalone-tests-with-suffixes 2> %t.err
-# RUN: FileCheck --check-prefixes=CHECK-STANDALONE-SUFFIXES,CHECK-STANDALONE-DISCOVERY < %t.err %s
-#
-# CHECK-STANDALONE-SUFFIXES: standalone_tests set {{.*}} but suffixes
-
-# Check that an error is produced if excludes variable is set for a suite with
-# standalone tests.
-#
-# RUN: not %{lit} %{inputs}/standalone-tests-with-excludes 2> %t.err
-# RUN: FileCheck --check-prefixes=CHECK-STANDALONE-EXCLUDES,CHECK-STANDALONE-DISCOVERY < %t.err %s
-#
-# CHECK-STANDALONE-EXCLUDES: standalone_tests set {{.*}} but {{.*}} excludes
-
 # Check that no discovery is done for testsuite with standalone tests.
 #
 # RUN: not %{lit} %{inputs}/standalone-tests 2>%t.err

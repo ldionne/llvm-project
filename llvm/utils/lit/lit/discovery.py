@@ -174,15 +174,6 @@ def getTestsInSuite(
     # local configuration.
     lc = getLocalConfig(ts, path_in_suite, litConfig, localConfigCache)
 
-    # Directory contains tests to be run standalone. Do not try to discover.
-    if lc.standalone_tests:
-        if lc.suffixes or lc.excludes:
-            litConfig.warning(
-                "standalone_tests set in LIT config but suffixes or excludes"
-                " are also set"
-            )
-        return
-
     # Search for tests.
     if lc.test_format is not None:
         for res in lc.test_format.getTestsInDirectory(ts, path_in_suite, litConfig, lc):

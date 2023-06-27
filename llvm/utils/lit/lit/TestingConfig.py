@@ -110,7 +110,6 @@ class TestingConfig(object):
             excludes=[],
             available_features=available_features,
             pipefail=True,
-            standalone_tests=False,
         )
 
     def load_from_path(self, path, litConfig):
@@ -171,7 +170,6 @@ class TestingConfig(object):
         limit_to_features=[],
         is_early=False,
         parallelism_group=None,
-        standalone_tests=False,
     ):
         self.parent = parent
         self.name = str(name)
@@ -185,7 +183,6 @@ class TestingConfig(object):
         self.excludes = set(excludes)
         self.available_features = set(available_features)
         self.pipefail = pipefail
-        self.standalone_tests = standalone_tests
         # This list is used by TestRunner.py to restrict running only tests that
         # require one of the features in this list if this list is non-empty.
         # Configurations can set this list to restrict the set of tests to run.
