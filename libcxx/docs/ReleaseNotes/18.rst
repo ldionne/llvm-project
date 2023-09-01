@@ -50,6 +50,12 @@ Improvements and New Features
 Deprecations and Removals
 -------------------------
 
+- libc++ no longer supports containers of ``const``-qualified element type,
+  such as ``std::vector<const T>`` and ``std::list<const T>``. This used to be
+  supported as an extension. Likewise, ``std::allocator<const T>`` is no longer
+  supported. If you were using ``std::vector<const T>``, replace it with
+  ``std::vector<T>`` instead.
+
 - The base template for ``std::char_traits`` has been removed. If you are using
   ``std::char_traits`` with types other than ``char``, ``wchar_t``, ``char8_t``,
   ``char16_t``, ``char32_t`` or a custom character type for which you
