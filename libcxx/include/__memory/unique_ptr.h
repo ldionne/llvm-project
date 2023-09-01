@@ -210,6 +210,7 @@ public:
   _LIBCPP_INLINE_VISIBILITY
   unique_ptr(pointer __p, _BadRValRefType<_Dummy> __d) = delete;
 
+  template <bool _Dummy = true, class = _EnableIf<__dependent_type<is_move_constructible<deleter_type>, _Dummy>::value> >
   _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR_SINCE_CXX23 unique_ptr(unique_ptr&& __u) _NOEXCEPT
       : __ptr_(__u.release(), _VSTD::forward<deleter_type>(__u.get_deleter())) {}
 
@@ -228,6 +229,7 @@ public:
       : __ptr_(__p.release(), __value_init_tag()) {}
 #endif
 
+  template <bool _Dummy = true, class = _EnableIf<__dependent_type<is_move_assignable<deleter_type>, _Dummy>::value> >
   _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR_SINCE_CXX23 unique_ptr& operator=(unique_ptr&& __u) _NOEXCEPT {
     reset(__u.release());
     __ptr_.second() = _VSTD::forward<deleter_type>(__u.get_deleter());

@@ -32,6 +32,14 @@ struct GenericDeleter {
   void operator()(void*) const;
 };
 
+template <class T>
+struct NonMoveableDeleter : std::default_delete<T> {
+  NonMoveableDeleter() = default;
+  NonMoveableDeleter& operator=(NonMoveableDeleter&&) = delete;
+};
+
+static_assert(!std::is_move_assignable<std::unique_ptr<int, NonMoveableDeleter<int> > >::value, "");
+
 template <bool IsArray>
 TEST_CONSTEXPR_CXX23 void test_basic() {
   typedef typename std::conditional<IsArray, A[], A>::type VT;

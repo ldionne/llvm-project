@@ -124,5 +124,7 @@ int main(int, char**)
         test_sfinae<move_only_large>();
     }
 
-  return 0;
+    static_assert(std::is_nothrow_move_constructible<std::tuple<> >::value, "");
+
+    return 0;
 }

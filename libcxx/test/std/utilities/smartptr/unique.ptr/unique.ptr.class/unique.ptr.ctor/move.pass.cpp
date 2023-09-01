@@ -188,6 +188,14 @@ void test_sink3() {
   assert(A::count == 0);
 }
 
+template <class T>
+struct NonMoveableDeleter : std::default_delete<T> {
+  NonMoveableDeleter() = default;
+  NonMoveableDeleter(NonMoveableDeleter&&) = delete;
+};
+
+static_assert(!std::is_move_constructible<std::unique_ptr<int, NonMoveableDeleter<int> > >::value, "");
+
 int main(int, char**) {
   test_sink3</*IsArray*/ false>();
   test_sink3</*IsArray*/ true>();
