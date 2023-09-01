@@ -378,6 +378,12 @@ inline size_t __hash_combine(size_t __lhs, size_t __rhs) _NOEXCEPT {
     return _HashT()(__p);
 }
 
+template<class _Tp> struct __is_objc_arc_ptr : false_type { };
+template<class _Tp> struct __is_objc_arc_ptr<_Tp* __strong> : true_type { };
+template<class _Tp> struct __is_objc_arc_ptr<_Tp* __weak> : true_type { };
+template<class _Tp> struct __is_objc_arc_ptr<_Tp* __autoreleasing> : true_type { };
+template<class _Tp> struct __is_objc_arc_ptr<_Tp* __unsafe_unretained> : true_type { };
+
 template<class _Tp>
 struct _LIBCPP_TEMPLATE_VIS hash<_Tp*>
     : public __unary_function<_Tp*, size_t>
@@ -385,15 +391,79 @@ struct _LIBCPP_TEMPLATE_VIS hash<_Tp*>
     _LIBCPP_HIDE_FROM_ABI
     size_t operator()(_Tp* __v) const _NOEXCEPT
     {
-        union
-        {
-            _Tp* __t;
-            size_t __a;
-        } __u;
-        __u.__t = __v;
-        return __murmur2_or_cityhash<size_t>()(&__u, sizeof(__u));
+        return std::__hash_pointer(__v, typename __is_objc_arc_ptr<_Tp*>::type());
     }
 };
+
+template<class _Tp>
+_LIBCPP_INLINE_VISIBILITY
+size_t __hash_pointer(_Tp* __v, false_type) {
+    union
+    {
+        _Tp* __t;
+        size_t __a;
+    } __u;
+    __u.__t = __v;
+    return __murmur2_or_cityhash<size_t>()(&__u, sizeof(__u));
+}
+
+template<class _Tp>
+_LIBCPP_INLINE_VISIBILITY
+size_t __hash_pointer(_Tp* __v, true_type) {
+    return _VSTD::hash<void*>()((__bridge void*)__v);
+}
+
+#if defined(_LIBCPP_HAS_OBJC_ARC)
+template<>
+struct _LIBCPP_TEMPLATE_VIS hash<id>
+    : public unary_function<id, size_t>
+{
+    _LIBCPP_INLINE_VISIBILITY
+    size_t operator()(id __v) const _NOEXCEPT {
+        return _VSTD::hash<void*>()((__bridge void*)__v);
+    }
+};
+
+template<class _Tp>
+struct _LIBCPP_TEMPLATE_VIS hash<_Tp* __strong>
+    : public unary_function<_Tp* __strong, size_t>
+{
+    _LIBCPP_INLINE_VISIBILITY
+    size_t operator()(_Tp* __strong __v) const _NOEXCEPT {
+        return _VSTD::hash<void*>()((__bridge void*)__v);
+    }
+};
+
+template<class _Tp>
+struct _LIBCPP_TEMPLATE_VIS hash<_Tp __weak*>
+    : public unary_function<_Tp __weak*, size_t>
+{
+    _LIBCPP_INLINE_VISIBILITY
+    size_t operator()(_Tp __weak* __v) const _NOEXCEPT {
+        return _VSTD::hash<void*>()((__bridge void*)__v);
+    }
+};
+
+template<class _Tp>
+struct _LIBCPP_TEMPLATE_VIS hash<_Tp __autoreleasing*>
+    : public unary_function<_Tp __autoreleasing*, size_t>
+{
+    _LIBCPP_INLINE_VISIBILITY
+    size_t operator()(_Tp __autoreleasing* __v) const _NOEXCEPT {
+        return _VSTD::hash<void*>()((__bridge void*)__v);
+    }
+};
+
+template<class _Tp>
+struct _LIBCPP_TEMPLATE_VIS hash<_Tp __unsafe_unretained*>
+    : public unary_function<_Tp __unsafe_unretained*, size_t>
+{
+    _LIBCPP_INLINE_VISIBILITY
+    size_t operator()(_Tp __unsafe_unretained* __v) const _NOEXCEPT {
+        return _VSTD::hash<void*>()((__bridge void*)__v);
+    }
+};
+#endif // defined(_LIBCPP_HAS_OBJC_ARC)
 
 template <>
 struct _LIBCPP_TEMPLATE_VIS hash<bool>
