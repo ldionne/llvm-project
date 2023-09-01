@@ -128,6 +128,8 @@ endif()
 message(STATUS "Using libc++ testing configuration: ${LIBCXX_TEST_CONFIG}")
 set(LIBCXX_TEST_PARAMS "" CACHE STRING
     "A list of parameters to run the Lit test suite with.")
+set(LIBCXX_BUILTINS_LIBRARY "libgcc" CACHE STRING
+    "The builtins library to use when building libc++. This can be either 'libgcc' (the default) or 'compiler-rt'.")
 
 # Benchmark options -----------------------------------------------------------
 option(LIBCXX_INCLUDE_BENCHMARKS "Build the libc++ benchmarks and their dependencies" ON)
@@ -198,7 +200,6 @@ endif()
 
 set(LIBCXX_ABI_DEFINES "" CACHE STRING "A semicolon separated list of ABI macros to define in the site config header.")
 set(LIBCXX_EXTRA_SITE_DEFINES "" CACHE STRING "Extra defines to add into __config_site")
-option(LIBCXX_USE_COMPILER_RT "Use compiler-rt instead of libgcc" OFF)
 
 # ABI Library options ---------------------------------------------------------
 if (MSVC)
@@ -463,6 +464,10 @@ endif()
 # Configure compiler.
 include(config-ix)
 
+# Configure base system libraries
+include(libraries/Builtins)
+include(libraries/CStdlib)
+
 # Configure coverage options.
 if (LIBCXX_GENERATE_COVERAGE)
   include(CodeCoverage)
@@ -662,20 +667,9 @@ function(cxx_link_system_libraries target)
     target_link_libraries(${target} PRIVATE rt)
   endif()
 
-  if (LIBCXX_USE_COMPILER_RT)
-    find_compiler_rt_library(builtins LIBCXX_BUILTINS_LIBRARY)
-    if (LIBCXX_BUILTINS_LIBRARY)
-      target_link_libraries(${target} PRIVATE "${LIBCXX_BUILTINS_LIBRARY}")
-    endif()
-  elseif (LIBCXX_HAS_GCC_LIB)
-    target_link_libraries(${target} PRIVATE gcc)
-  elseif (LIBCXX_HAS_GCC_S_LIB)
-    target_link_libraries(${target} PRIVATE gcc_s)
-  endif()
+  target_link_libraries(${target} PRIVATE libcxx::cstdlib)
 
-  if (LIBCXX_HAS_ATOMIC_LIB)
-    target_link_libraries(${target} PRIVATE atomic)
-  endif()
+  target_link_libraries(${target} PRIVATE libcxx::builtins)
 
   if (MINGW)
     target_link_libraries(${target} PRIVATE "${MINGW_LIBRARIES}")
