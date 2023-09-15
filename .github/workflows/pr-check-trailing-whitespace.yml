@@ -1,0 +1,21 @@
+name: Ensure there are no trailing whitespace
+on: [pull_request]
+
+jobs:
+  check_trailing_whitespace:
+    runs-on: ubuntu-latest
+    name: Check trailing whitespace
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v39
+      - name: Check trailing whitespace in changed files
+        run: |-
+          exit_code=0
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            if grep -n '[[:blank:]]$' ${file}; then
+              exit_code=1
+            fi
+          done
+          exit $exit_code
