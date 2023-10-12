@@ -33,24 +33,6 @@ steps:
   #
   # Light pre-commit tests for things like forgetting to update generated files.
   #
-  - label: "Generated output"
-    command: "libcxx/utils/ci/run-buildbot check-generated-output"
-    artifact_paths:
-      - "**/generated_output.patch"
-      - "**/generated_output.status"
-    env:
-        CC: "clang-${LLVM_HEAD_VERSION}"
-        CXX: "clang++-${LLVM_HEAD_VERSION}"
-        CLANG_FORMAT: "/usr/bin/clang-format-${LLVM_STABLE_VERSION}"
-    agents:
-      queue: "libcxx-builders"
-      os: "linux"
-    retry:
-      automatic:
-        - exit_status: -1  # Agent was lost
-          limit: 2
-    timeout_in_minutes: 120
-
   - label: "Documentation"
     command: "libcxx/utils/ci/run-buildbot documentation"
     artifact_paths:
