@@ -42,7 +42,7 @@ static void* operator_new_impl(std::size_t size) noexcept {
   return p;
 }
 
-_LIBCPP_WEAK void* operator new(std::size_t size) _THROW_BAD_ALLOC {
+_LIBCPP_MAKE_OVERRIDABLE_FUNCTION_DETECTABLE _LIBCPP_WEAK void* operator new(std::size_t size) _THROW_BAD_ALLOC {
   void* p = operator_new_impl(size);
   if (p == nullptr)
     __throw_bad_alloc_shim();
@@ -70,7 +70,9 @@ _LIBCPP_WEAK void* operator new(size_t size, const std::nothrow_t&) noexcept {
 #  endif
 }
 
-_LIBCPP_WEAK void* operator new[](size_t size) _THROW_BAD_ALLOC { return ::operator new(size); }
+_LIBCPP_MAKE_OVERRIDABLE_FUNCTION_DETECTABLE _LIBCPP_WEAK void* operator new[](size_t size) _THROW_BAD_ALLOC {
+  return ::operator new(size);
+}
 
 _LIBCPP_WEAK void* operator new[](size_t size, const std::nothrow_t&) noexcept {
 #  ifdef _LIBCPP_HAS_NO_EXCEPTIONS
@@ -127,7 +129,8 @@ static void* operator_new_aligned_impl(std::size_t size, std::align_val_t alignm
   return p;
 }
 
-_LIBCPP_WEAK void* operator new(std::size_t size, std::align_val_t alignment) _THROW_BAD_ALLOC {
+_LIBCPP_MAKE_OVERRIDABLE_FUNCTION_DETECTABLE _LIBCPP_WEAK void*
+operator new(std::size_t size, std::align_val_t alignment) _THROW_BAD_ALLOC {
   void* p = operator_new_aligned_impl(size, alignment);
   if (p == nullptr)
     __throw_bad_alloc_shim();
@@ -155,7 +158,8 @@ _LIBCPP_WEAK void* operator new(size_t size, std::align_val_t alignment, const s
 #    endif
 }
 
-_LIBCPP_WEAK void* operator new[](size_t size, std::align_val_t alignment) _THROW_BAD_ALLOC {
+_LIBCPP_MAKE_OVERRIDABLE_FUNCTION_DETECTABLE _LIBCPP_WEAK void*
+operator new[](size_t size, std::align_val_t alignment) _THROW_BAD_ALLOC {
   return ::operator new(size, alignment);
 }
 
