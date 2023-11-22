@@ -928,7 +928,7 @@ typedef __char32_t char32_t;
 #  endif
 
 #  if defined(__APPLE__) || defined(__FreeBSD__)
-#    define _LIBCPP_WCTYPE_IS_MASK
+# define _LIBCPP_WCTYPE_IS_MASK
 #  endif
 
 #  if _LIBCPP_STD_VER <= 17 || !defined(__cpp_char8_t)
