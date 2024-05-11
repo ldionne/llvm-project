@@ -160,3 +160,6 @@ Build System Changes
 - The CMake options ``LIBCXX_BENCHMARK_NATIVE_STDLIB`` and ``LIBCXX_BENCHMARK_NATIVE_GCC_TOOLCHAIN`` have
   been removed. To benchmark the native standard library, configure the test suite against the native
   standard library directly instead.
+
+- The CMake option ``LIBCXX_INCLUDE_BENCHMARKS`` has been removed. The benchmarks are now part of the
+  test suite and they are enabled whenever the tests are enabled (via ``LIBCXX_INCLUDE_TESTS``).

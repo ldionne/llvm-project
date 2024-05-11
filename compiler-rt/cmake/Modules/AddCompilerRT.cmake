@@ -692,7 +692,6 @@ macro(add_custom_libcxx name prefix)
                -DLIBCXX_CXX_ABI=libcxxabi
                -DLIBCXX_ENABLE_SHARED=OFF
                -DLIBCXX_HERMETIC_STATIC_LIBRARY=ON
-               -DLIBCXX_INCLUDE_BENCHMARKS=OFF
                -DLIBCXX_INCLUDE_TESTS=OFF
                -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON
                ${LIBCXX_CMAKE_ARGS}

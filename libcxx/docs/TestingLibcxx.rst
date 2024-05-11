@@ -432,44 +432,12 @@ Libc++ contains benchmark tests separately from the test of the test suite.
 The benchmarks are written using the `Google Benchmark`_ library, a copy of which
 is stored in the libc++ repository.
 
-For more information about using the Google Benchmark library see the
+For more information about using the Google Benchmark library, see the
 `official documentation <https://github.com/google/benchmark>`_.
 
+The benchmarks are located under ``libcxx/test/benchmarks``. Running a benchmark
+works in the same way as running a test. Both the benchmarks and the tests share
+the same configuration, so make sure to enable the relevant optimization level
+when running the benchmarks.
+
 .. _`Google Benchmark`: https://github.com/google/benchmark
-
-Building Benchmarks
--------------------
-
-The benchmark tests are not built by default. The benchmarks can be built using
-the ``cxx-benchmarks`` target.
-
-An example build would look like:
-
-.. code-block:: bash
-
-  $ ninja -C build cxx-benchmarks
-
-This will build all of the benchmarks under ``<libcxx>/test/benchmarks`` to be
-built against the just-built libc++. The compiled tests are output into
-``build/libcxx/test/benchmarks``.
-
-Also See:
-
-  * :ref:`Building Libc++ <build instructions>`
-  * :ref:`CMake Options`
-
-Running Benchmarks
-------------------
-
-The benchmarks must be run manually by the user. Currently there is no way
-to run them as part of the build.
-
-For example:
-
-.. code-block:: bash
-
-  $ cd build/libcxx/test/benchmarks
-  $ ./algorithms.out # Runs all the benchmarks
-  $ ./algorithms.out --benchmark_filter=BM_Sort.* # Only runs the sort benchmarks
-
-For more information about running benchmarks see `Google Benchmark`_.

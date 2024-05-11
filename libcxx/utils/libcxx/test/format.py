@@ -254,6 +254,7 @@ class CxxStandardLibraryTest(lit.formats.FileBasedTest):
 
     def getTestsForPath(self, testSuite, pathInSuite, litConfig, localConfig):
         SUPPORTED_SUFFIXES = [
+            "[.]bench[.]cpp$",
             "[.]pass[.]cpp$",
             "[.]pass[.]mm$",
             "[.]compile[.]pass[.]cpp$",
@@ -329,6 +330,12 @@ class CxxStandardLibraryTest(lit.formats.FileBasedTest):
             steps = [
                 "%dbg(COMPILED WITH) %{cxx} %s %{flags} %{compile_flags} %{link_flags} -o %t.exe",
                 "%dbg(EXECUTED AS) %{exec} %t.exe",
+            ]
+            return self._executeShTest(test, litConfig, steps)
+        elif filename.endswith(".bench.cpp"):
+            steps = [
+                "%dbg(COMPILED WITH) %{cxx} %s %{flags} %{compile_flags} %{link_flags} -I /Users/ldionne/code/llvm/build/default/libcxx/test/benchmarks/google-benchmark/include -L /Users/ldionne/code/llvm/build/default/libcxx/test/benchmarks/google-benchmark/lib -l benchmark -o %t.exe",
+                "%dbg(EXECUTED AS) %{exec} %t.exe --benchmark_min_time=0.00000001ns",
             ]
             return self._executeShTest(test, litConfig, steps)
         else:

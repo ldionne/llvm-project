@@ -179,7 +179,7 @@ template <class FunctionType>
 struct Invoke {
   static void run(benchmark::State& state) {
     S s;
-    const auto value = MakeFunction(FunctionType());
+    auto value = MakeFunction(FunctionType());
     for (auto _ : state) {
       benchmark::DoNotOptimize(value);
       benchmark::DoNotOptimize(value(&s));
