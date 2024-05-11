@@ -850,10 +850,6 @@ set(LIBCXX_TEST_DEPS "cxx_experimental")
 
 list(APPEND LIBCXX_TEST_DEPS generate-cxx-modules)
 
-if (LIBCXX_INCLUDE_BENCHMARKS)
-  add_subdirectory(benchmarks)
-endif()
-
 if (LIBCXX_INCLUDE_TESTS)
   add_subdirectory(test)
   add_subdirectory(lib/abi)

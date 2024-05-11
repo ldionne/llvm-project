@@ -7,6 +7,10 @@ if(TARGET cxx-tidy)
   list(APPEND LIBCXX_TEST_DEPS cxx-tidy)
 endif()
 
+if (LIBCXX_INCLUDE_BENCHMARKS)
+  add_subdirectory(benchmarks)
+endif()
+
 # By default, libcxx and libcxxabi share a library directory.
 if (NOT LIBCXX_CXX_ABI_LIBRARY_PATH)
   set(LIBCXX_CXX_ABI_LIBRARY_PATH "${LIBCXX_LIBRARY_DIR}" CACHE PATH
