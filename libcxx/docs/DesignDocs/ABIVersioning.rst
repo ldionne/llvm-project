@@ -23,6 +23,10 @@ Internally, each ABI-changing feature is placed under its own C++ macro,
 at build time. Libc++ does not intend users to interact with these C++ macros
 directly.
 
+Each ABI macro needs to produce a stable ABI in itself
+
+[ ] Document that "An ABI macro must not result in a different ABI for different Standard versions, period." As a comment above ABI macros. Also audit existing ABI macros.
+
 -----------------
 MSVC environments
 -----------------
