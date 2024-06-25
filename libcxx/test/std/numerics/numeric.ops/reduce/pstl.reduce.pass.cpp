@@ -41,9 +41,11 @@ struct Test {
 
       {
         decltype(auto) ret = std::reduce(
-            policy, Iter(std::data(a)), Iter(std::data(a) + std::size(a)), ValueT(34), [](ValueT i, ValueT j) {
-              return i + j + 2;
-            });
+            policy,
+            Iter(std::data(a)),
+            Iter(std::data(a) + std::size(a)),
+            ValueT(34),
+            [](ValueT const& i, ValueT const& j) { return i + j + 2; });
         static_assert(std::is_same_v<decltype(ret), ValueT>);
         assert(ret == ValueT(expected));
       }
@@ -62,11 +64,13 @@ struct Test {
 };
 
 int main(int, char**) {
-  types::for_each(types::forward_iterator_list<int*>{}, types::apply_type_identity{[](auto v) {
-                    using Iter = typename decltype(v)::type;
+  types::for_each(types::type_list<int, MoveOnly>{}, types::apply_type_identity{[](auto value_type) {
+                    using ValueType = typename decltype(value_type)::type;
                     types::for_each(
-                        types::type_list<int, MoveOnly>{},
-                        TestIteratorWithPolicies<types::partial_instantiation<Test, Iter>::template apply>{});
+                        types::forward_iterator_list<ValueType*>{}, types::apply_type_identity{[](auto iterator) {
+                          using Iterator = typename decltype(iterator)::type;
+                          test_execution_policies(Test<Iterator, ValueType>{});
+                        }});
                   }});
 
   return 0;

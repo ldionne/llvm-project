@@ -13,6 +13,7 @@
 #include <__config>
 #include <__functional/operations.h>
 #include <__iterator/iterator_traits.h>
+#include <__type_traits/is_convertible.h>
 #include <__utility/move.h>
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
@@ -28,6 +29,11 @@ _LIBCPP_BEGIN_NAMESPACE_STD
 template <class _InputIterator, class _Tp, class _BinaryOp>
 _LIBCPP_HIDE_FROM_ABI _LIBCPP_CONSTEXPR_SINCE_CXX20 _Tp
 reduce(_InputIterator __first, _InputIterator __last, _Tp __init, _BinaryOp __b) {
+  static_assert(is_convertible_v<decltype(__b(*__first, *__first)), _Tp>);
+  static_assert(is_convertible_v<decltype(__b(*__first, __init)), _Tp>);
+  static_assert(is_convertible_v<decltype(__b(__init, *__first)), _Tp>);
+  static_assert(is_convertible_v<decltype(__b(__init, __init)), _Tp>);
+
   for (; __first != __last; ++__first)
     __init = __b(std::move(__init), *__first);
   return __init;

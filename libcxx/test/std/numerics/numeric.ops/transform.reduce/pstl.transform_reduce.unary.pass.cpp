@@ -28,26 +28,26 @@
 #include "test_iterators.h"
 #include "test_macros.h"
 
-template <class Iter1, class ValueT>
+template <class Iter, class ValueT>
 struct Test {
   template <class Policy>
   void operator()(Policy&& policy) {
     for (const auto& pair : {std::pair{0, 34}, {1, 35}, {2, 37}, {100, 5084}, {350, 61459}}) {
       auto [size, expected] = pair;
-      std::vector<int> a(size);
+      std::vector<ValueT> a(size);
       for (int i = 0; i != size; ++i)
-        a[i] = i;
+        a[i] = ValueT(i);
 
       decltype(auto) ret = std::transform_reduce(
           policy,
-          Iter1(std::data(a)),
-          Iter1(std::data(a) + std::size(a)),
+          Iter(std::data(a)),
+          Iter(std::data(a) + std::size(a)),
           ValueT(34),
-          [check = std::string("Banane")](ValueT i, ValueT j) {
+          [check = std::string("Banane")](ValueT const& i, ValueT const& j) {
             assert(check == "Banane"); // ensure that no double-moves happen
             return i + j;
           },
-          [check = std::string("Banane")](ValueT i) {
+          [check = std::string("Banane")](ValueT const& i) {
             assert(check == "Banane"); // ensure that no double-moves happen
             return i + 1;
           });
@@ -58,11 +58,13 @@ struct Test {
 };
 
 int main(int, char**) {
-  types::for_each(types::forward_iterator_list<int*>{}, types::apply_type_identity{[](auto v) {
-                    using Iter2 = typename decltype(v)::type;
+  types::for_each(types::type_list<int, MoveOnly>{}, types::apply_type_identity{[](auto value_type) {
+                    using ValueType = typename decltype(value_type)::type;
                     types::for_each(
-                        types::type_list<int, MoveOnly>{},
-                        TestIteratorWithPolicies<types::partial_instantiation<Test, Iter2>::template apply>{});
+                        types::forward_iterator_list<ValueType*>{}, types::apply_type_identity{[](auto iterator) {
+                          using Iterator = typename decltype(iterator)::type;
+                          test_execution_policies(Test<Iterator, ValueType>{});
+                        }});
                   }});
 
   return 0;

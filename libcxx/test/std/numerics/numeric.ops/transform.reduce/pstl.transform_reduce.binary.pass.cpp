@@ -57,11 +57,11 @@ struct Test {
   void operator()(Policy&& policy) {
     for (const auto& pair : {std::pair{0, 34}, {1, 40}, {2, 48}, {100, 10534}, {350, 124284}}) {
       auto [size, expected] = pair;
-      std::vector<int> a(size);
-      std::vector<int> b(size);
+      std::vector<ValueT> a(size);
+      std::vector<ValueT> b(size);
       for (int i = 0; i != size; ++i) {
-        a[i] = i + 1;
-        b[i] = i + 4;
+        a[i] = ValueT(i + 1);
+        b[i] = ValueT(i + 4);
       }
 
       decltype(auto) ret = std::transform_reduce(
@@ -71,18 +71,18 @@ struct Test {
           Iter2(std::data(b)),
           ValueT(34),
           std::plus{},
-          [](ValueT i, ValueT j) { return i + j + 1; });
+          [](ValueT const& i, ValueT const& j) { return i + j + 1; });
       static_assert(std::is_same_v<decltype(ret), ValueT>);
       assert(ret == expected);
     }
 
     for (const auto& pair : {std::pair{0, 34}, {1, 30}, {2, 24}, {100, 313134}, {350, 14045884}}) {
       auto [size, expected] = pair;
-      std::vector<int> a(size);
-      std::vector<int> b(size);
+      std::vector<ValueT> a(size);
+      std::vector<ValueT> b(size);
       for (int i = 0; i != size; ++i) {
-        a[i] = i + 1;
-        b[i] = i - 4;
+        a[i] = ValueT(i + 1);
+        b[i] = ValueT(i - 4);
       }
 
       decltype(auto) ret = std::transform_reduce(
@@ -108,17 +108,18 @@ struct Test {
 };
 
 int main(int, char**) {
-  types::for_each(
-      types::forward_iterator_list<int*>{}, types::apply_type_identity{[](auto v) {
-        using Iter2 = typename decltype(v)::type;
-        types::for_each(
-            types::forward_iterator_list<int*>{}, types::apply_type_identity{[](auto v2) {
-              using Iter1 = typename decltype(v2)::type;
-              types::for_each(
-                  types::type_list<int, MoveOnly>{},
-                  TestIteratorWithPolicies<types::partial_instantiation<Test, Iter1, Iter2>::template apply>{});
-            }});
-      }});
+  types::for_each(types::type_list<int, MoveOnly>{}, types::apply_type_identity{[](auto value_type) {
+                    using ValueType = typename decltype(value_type)::type;
+                    types::for_each(
+                        types::forward_iterator_list<ValueType*>{}, types::apply_type_identity{[](auto iterator1) {
+                          using Iterator1 = typename decltype(iterator1)::type;
+                          types::for_each(types::forward_iterator_list<ValueType*>{},
+                                          types::apply_type_identity{[](auto iterator2) {
+                                            using Iterator2 = typename decltype(iterator2)::type;
+                                            test_execution_policies(Test<Iterator1, Iterator2, ValueType>{});
+                                          }});
+                        }});
+                  }});
 
   return 0;
 }
