@@ -925,7 +925,139 @@ add_subdirectory(utils)
 add_subdirectory(modules)
 
 if (LIBCXX_INCLUDE_TESTS)
-  add_subdirectory(test)
+  # Install the library at a fake location so we can run the test suite against it.
+  # This ensures that we run the test suite against a setup that matches what we ship
+  # in production as closely as possible (in terms of file paths, rpaths, etc).
+  set(LIBCXX_TESTING_INSTALL_PREFIX "${LIBCXX_BINARY_DIR}/test-suite-install")
+  set(libcxx_test_suite_install_targets cxx-headers cxx cxx-modules)
+  if (LIBCXX_CXX_ABI STREQUAL "libcxxabi")
+    list(APPEND libcxx_test_suite_install_targets cxxabi-headers cxxabi)
+  endif()
+  if (LIBCXXABI_USE_LLVM_UNWINDER AND TARGET unwind)
+    list(APPEND libcxx_test_suite_install_targets unwind-headers unwind)
+  endif()
+  foreach(target IN LISTS libcxx_test_suite_install_targets)
+    add_custom_target(libcxx-test-suite-install-${target} DEPENDS "${target}"
+                      COMMAND "${CMAKE_COMMAND}" --install "${CMAKE_BINARY_DIR}"
+                                                 --prefix "${LIBCXX_TESTING_INSTALL_PREFIX}"
+                                                 --component "${target}")
+    add_dependencies(cxx-test-depends libcxx-test-suite-install-${target})
+  endforeach()
+
+  # Resolve the chosen Lit site configuration (Tier-1: how to build/link/run against the library)
+  # for the just-built libc++. This only bakes in things like the sysroot; the install paths are
+  # passed separately as parameters and materialized by the test-suite project's cmake-bridge.
+  string(REGEX REPLACE "\\.in$" "" _resolved_cfg_name "${LIBCXX_TEST_CONFIG}")
+  get_filename_component(_resolved_cfg_name "${_resolved_cfg_name}" NAME)
+  set(LIBCXX_RESOLVED_TEST_CONFIG "${LIBCXX_BINARY_DIR}/test/${_resolved_cfg_name}")
+  configure_file("${LIBCXX_TEST_CONFIG}" "${LIBCXX_RESOLVED_TEST_CONFIG}" @ONLY)
+
+  # Generate the fragment carrying libc++'s install-location substitutions (%{include-dir}, ...).
+  # It is injected into the library-agnostic test-suite project via STLTEST_EXTRA_CONFIG, so the
+  # project itself has no notion of an install prefix.
+  set(LIBCXX_SUBSTITUTIONS_CONFIG "${LIBCXX_BINARY_DIR}/test/libcxx-substitutions.cfg")
+  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/test/configs/libcxx-substitutions.cfg.in"
+                 "${LIBCXX_SUBSTITUTIONS_CONFIG}" @ONLY)
+
+  if (CMAKE_CXX_COMPILER_TARGET)
+    set(_triple "${CMAKE_CXX_COMPILER_TARGET}")
+  else()
+    set(_triple "${LLVM_DEFAULT_TARGET_TRIPLE}")
+  endif()
+
+  # Translate the libc++ build options into the test suite's generic Lit-parameter passthrough.
+  # These are library-test-suite concepts, so the mapping lives in the driver, not in the
+  # (library-agnostic) test-suite project.
+  set(_test_params ${LIBCXX_TEST_PARAMS})
+  if (NOT LIBCXX_ENABLE_EXCEPTIONS)
+    list(APPEND _test_params "enable_exceptions=False")
+  endif()
+  if (NOT LIBCXX_ENABLE_RTTI)
+    list(APPEND _test_params "enable_rtti=False")
+  endif()
+  if (LLVM_USE_SANITIZER)
+    list(APPEND _test_params "use_sanitizer=${LLVM_USE_SANITIZER}")
+  endif()
+  if (NOT "${LIBCXX_HARDENING_MODE}" STREQUAL "none")
+    list(APPEND _test_params "hardening_mode=${LIBCXX_HARDENING_MODE}")
+  endif()
+  # Encode the ';'-separated list so it survives ExternalProject's CMAKE_ARGS (see LIST_SEPARATOR).
+  string(REPLACE ";" "|" _test_params_arg "${_test_params}")
+
+  if (LIBCXX_INCLUDE_BENCHMARKS)
+    set(_benchmarks "-DSTLTEST_ENABLE_BENCHMARKS=dry-run")
+  else()
+    set(_benchmarks "-DSTLTEST_ENABLE_BENCHMARKS=no")
+  endif()
+
+  # Flags used to build GoogleBenchmark against the just-built libc++. These describe the
+  # *build tree* library (not the fake install), which is sufficient since GoogleBenchmark
+  # only needs to be ABI-compatible with the libc++ the tests link against.
+  set(_compile_flags)
+  list(APPEND _compile_flags "-nostdinc++" "-isystem" "${LIBCXX_GENERATED_INCLUDE_DIR}")
+  if(LLVM_ENABLE_PER_TARGET_RUNTIME_DIR AND NOT APPLE)
+    list(APPEND _compile_flags "-isystem" "${LIBCXX_GENERATED_INCLUDE_TARGET_DIR}")
+  endif()
+
+  list(APPEND _compile_flags "-L${LIBCXX_LIBRARY_DIR}" "-lc++" "-Wl,-rpath,${LIBCXX_LIBRARY_DIR}")
+  if (DEFINED LIBCXX_CXX_ABI_LIBRARY_PATH)
+    list(APPEND _compile_flags "-L${LIBCXX_CXX_ABI_LIBRARY_PATH}" "-Wl,-rpath,${LIBCXX_CXX_ABI_LIBRARY_PATH}")
+  endif()
+  if (NOT LIBCXX_ENABLE_SHARED)
+    list(APPEND _compile_flags "-lc++abi")
+  endif()
+  # Passing a ';'-separated CMake list through CMAKE_ARGS mangles it onto the compiler command
+  # line; flatten to a single space-separated string (mirrors the old split_list()).
+  list(JOIN _compile_flags " " _compile_flags_str)
+
+  # Configure, build and run the standalone test-suite project as an ExternalProject so that
+  # the in-tree `ninja check-cxx` keeps working. The suite can also be configured on its own,
+  # pointed at any resolved site configuration.
+  #
+  # TODO: The dependencies are not tracked perfectly -- editing test/CMakeLists.txt does not
+  #       force a reconfigure of the sub-project. That is acceptable for clean (CI) builds.
+  include(ExternalProject)
+  ExternalProject_Add(libcxx-test-suite
+    DEPENDS cxx-test-depends
+    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/test"
+    LIST_SEPARATOR "|"
+    CMAKE_ARGS
+      "-DCMAKE_INSTALL_PREFIX=${LIBCXX_BINARY_DIR}/test"
+      "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
+      "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+      "-DCMAKE_CXX_COMPILER_TARGET=${_triple}"
+      "-DCMAKE_CXX_FLAGS=${_compile_flags_str}"
+      "-DSTLTEST_CONFIG=${LIBCXX_RESOLVED_TEST_CONFIG}"
+      "-DSTLTEST_PARAMS=${_test_params_arg}"
+      "-DSTLTEST_EXTRA_CONFIG=${LIBCXX_SUBSTITUTIONS_CONFIG}"
+      ${_benchmarks}
+    BUILD_ALWAYS ON
+    USES_TERMINAL_CONFIGURE ON
+    USES_TERMINAL_BUILD ON
+    USES_TERMINAL_INSTALL ON
+  )
+
+  # Honor LLVM_LIT_ARGS (set by the runtimes build / run-buildbot, e.g.
+  # "--xunit-xml-output test-results.xml --timeout=1500") when running the suite.
+  set(_lit_args "${LLVM_LIT_ARGS}")
+  if (NOT _lit_args)
+    set(_lit_args "-sv")
+  endif()
+  separate_arguments(_lit_args UNIX_COMMAND "${_lit_args}")
+  add_custom_target(check-cxx
+    COMMAND "${LIBCXX_BINARY_DIR}/test/bin/stl-runner" ${_lit_args} "${LIBCXX_SOURCE_DIR}/test"
+    DEPENDS libcxx-test-suite
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+    USES_TERMINAL
+    COMMENT "Running libc++ tests")
+
+  # Keep the runtimes umbrella (`check-runtimes`, `check-all`) and `runtimes-test-depends`
+  # working even though we no longer register through add_lit_testsuite. These GLOBAL
+  # properties are consumed by umbrella_lit_testsuite_end() and runtimes-test-depends in
+  # runtimes/CMakeLists.txt, and are harmless outside a runtimes build.
+  set_property(GLOBAL APPEND PROPERTY LLVM_RUNTIMES_LIT_DEPENDS cxx-test-depends)
+  set_property(GLOBAL APPEND PROPERTY LLVM_RUNTIMES_ADDITIONAL_TEST_TARGETS check-cxx)
+
   add_subdirectory(lib/abi)
 endif()
 

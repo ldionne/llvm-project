@@ -45,5 +45,20 @@ if [[ "${type}" == "runtimes" ]]; then
         echo "N.B.: In a bootstrap build, lit needs a prefix to work correctly;"
         echo "      See libcxx/docs/Testinglibcxx.rst for more information."
 fi
-cmake --build "${build_dir}" --target ${type}-test-depends
-"${build_dir}/bin/llvm-lit" ${@}
+cmake --build "${build_dir}" --target ${type}-test-depends libcxx-test-suite
+
+# The libc++ test suite is a standalone project driven by 'stl-runner' (which replaces the
+# generic llvm-lit entry point). Locate it across the common build layouts.
+runner=""
+for candidate in "${build_dir}/libcxx/test/bin/stl-runner" "${build_dir}/test/bin/stl-runner"; do
+    if [[ -x "${candidate}" ]]; then
+        runner="${candidate}"
+        break
+    fi
+done
+if [[ -z "${runner}" ]]; then
+    echo "Unable to locate 'stl-runner' under '${build_dir}'; did the libcxx-test-suite target build?"
+    exit 1
+fi
+"${runner}" ${@}
+

@@ -1,5 +1,9 @@
 # This testing configuration handles running the test suite against LLVM's libc++
 # using a static library.
+#
+# It is loaded after the CMake bridge (cmake-bridge.cfg), which sets up the harness and the
+# library-under-test substitutions (%{include-dir}, %{lib-dir}, ...); this file only describes
+# how to build, link and run against the library under test.
 
 config.substitutions.append(('%{flags}',
     '-pthread' + (' -isysroot {}'.format('@CMAKE_OSX_SYSROOT@') if '@CMAKE_OSX_SYSROOT@' else '')
