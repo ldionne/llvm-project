@@ -14,7 +14,7 @@
 
 void BenchmarkSizes(benchmark::internal::Benchmark* Benchmark) {
   Benchmark->DenseRange(1, 8);
-  for (size_t i = 16; i != 1 << 20; i *= 2) {
+  for (size_t i = 16; i != 1 << 15; i *= 2) {
     Benchmark->Arg(i - 1);
     Benchmark->Arg(i);
     Benchmark->Arg(i + 1);
@@ -51,8 +51,8 @@ static void bm_mismatch_two_range_overload(benchmark::State& state) {
     benchmark::DoNotOptimize(std::mismatch(vec1.begin(), vec1.end(), vec2.begin(), vec2.end()));
   }
 }
-BENCHMARK(bm_mismatch_two_range_overload<char>)->DenseRange(1, 8)->Range(16, 1 << 20);
-BENCHMARK(bm_mismatch_two_range_overload<short>)->DenseRange(1, 8)->Range(16, 1 << 20);
-BENCHMARK(bm_mismatch_two_range_overload<int>)->DenseRange(1, 8)->Range(16, 1 << 20);
+BENCHMARK(bm_mismatch_two_range_overload<char>)->DenseRange(1, 8)->Range(16, 1 << 15);
+BENCHMARK(bm_mismatch_two_range_overload<short>)->DenseRange(1, 8)->Range(16, 1 << 15);
+BENCHMARK(bm_mismatch_two_range_overload<int>)->DenseRange(1, 8)->Range(16, 1 << 15);
 
 BENCHMARK_MAIN();

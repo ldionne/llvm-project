@@ -30,12 +30,12 @@ static void bm_find(benchmark::State& state) {
     vec1[idx] = '1';
   }
 }
-BENCHMARK(bm_find<std::vector<char>>)->DenseRange(1, 8)->Range(16, 1 << 20);
-BENCHMARK(bm_find<std::vector<short>>)->DenseRange(1, 8)->Range(16, 1 << 20);
-BENCHMARK(bm_find<std::vector<int>>)->DenseRange(1, 8)->Range(16, 1 << 20);
-BENCHMARK(bm_find<std::deque<char>>)->DenseRange(1, 8)->Range(16, 1 << 20);
-BENCHMARK(bm_find<std::deque<short>>)->DenseRange(1, 8)->Range(16, 1 << 20);
-BENCHMARK(bm_find<std::deque<int>>)->DenseRange(1, 8)->Range(16, 1 << 20);
+BENCHMARK(bm_find<std::vector<char>>)->DenseRange(1, 8)->Range(16, 1 << 15);
+BENCHMARK(bm_find<std::vector<short>>)->DenseRange(1, 8)->Range(16, 1 << 15);
+BENCHMARK(bm_find<std::vector<int>>)->DenseRange(1, 8)->Range(16, 1 << 15);
+BENCHMARK(bm_find<std::deque<char>>)->DenseRange(1, 8)->Range(16, 1 << 15);
+BENCHMARK(bm_find<std::deque<short>>)->DenseRange(1, 8)->Range(16, 1 << 15);
+BENCHMARK(bm_find<std::deque<int>>)->DenseRange(1, 8)->Range(16, 1 << 15);
 
 template <class Container>
 static void bm_ranges_find(benchmark::State& state) {
@@ -52,12 +52,12 @@ static void bm_ranges_find(benchmark::State& state) {
     vec1[idx] = '1';
   }
 }
-BENCHMARK(bm_ranges_find<std::vector<char>>)->DenseRange(1, 8)->Range(16, 1 << 20);
-BENCHMARK(bm_ranges_find<std::vector<short>>)->DenseRange(1, 8)->Range(16, 1 << 20);
-BENCHMARK(bm_ranges_find<std::vector<int>>)->DenseRange(1, 8)->Range(16, 1 << 20);
-BENCHMARK(bm_ranges_find<std::deque<char>>)->DenseRange(1, 8)->Range(16, 1 << 20);
-BENCHMARK(bm_ranges_find<std::deque<short>>)->DenseRange(1, 8)->Range(16, 1 << 20);
-BENCHMARK(bm_ranges_find<std::deque<int>>)->DenseRange(1, 8)->Range(16, 1 << 20);
+BENCHMARK(bm_ranges_find<std::vector<char>>)->DenseRange(1, 8)->Range(16, 1 << 15);
+BENCHMARK(bm_ranges_find<std::vector<short>>)->DenseRange(1, 8)->Range(16, 1 << 15);
+BENCHMARK(bm_ranges_find<std::vector<int>>)->DenseRange(1, 8)->Range(16, 1 << 15);
+BENCHMARK(bm_ranges_find<std::deque<char>>)->DenseRange(1, 8)->Range(16, 1 << 15);
+BENCHMARK(bm_ranges_find<std::deque<short>>)->DenseRange(1, 8)->Range(16, 1 << 15);
+BENCHMARK(bm_ranges_find<std::deque<int>>)->DenseRange(1, 8)->Range(16, 1 << 15);
 
 static void bm_vector_bool_find(benchmark::State& state) {
   std::vector<bool> vec1(state.range(), false);
@@ -71,7 +71,7 @@ static void bm_vector_bool_find(benchmark::State& state) {
     vec1[idx] = false;
   }
 }
-BENCHMARK(bm_vector_bool_find)->DenseRange(1, 8)->Range(16, 1 << 20);
+BENCHMARK(bm_vector_bool_find)->DenseRange(1, 8)->Range(16, 1 << 15);
 
 static void bm_vector_bool_ranges_find(benchmark::State& state) {
   std::vector<bool> vec1(state.range(), false);
@@ -85,6 +85,6 @@ static void bm_vector_bool_ranges_find(benchmark::State& state) {
     vec1[idx] = false;
   }
 }
-BENCHMARK(bm_vector_bool_ranges_find)->DenseRange(1, 8)->Range(16, 1 << 20);
+BENCHMARK(bm_vector_bool_ranges_find)->DenseRange(1, 8)->Range(16, 1 << 15);
 
 BENCHMARK_MAIN();

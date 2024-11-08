@@ -22,7 +22,7 @@ static void bm_vector_bool_count(benchmark::State& state) {
     benchmark::DoNotOptimize(std::count(vec1.begin(), vec1.end(), true));
   }
 }
-BENCHMARK(bm_vector_bool_count)->DenseRange(1, 8)->Range(16, 1 << 20);
+BENCHMARK(bm_vector_bool_count)->DenseRange(1, 8)->Range(16, 1 << 15);
 
 static void bm_vector_bool_ranges_count(benchmark::State& state) {
   std::vector<bool> vec1(state.range(), false);
@@ -32,6 +32,6 @@ static void bm_vector_bool_ranges_count(benchmark::State& state) {
     benchmark::DoNotOptimize(std::ranges::count(vec1.begin(), vec1.end(), true));
   }
 }
-BENCHMARK(bm_vector_bool_ranges_count)->DenseRange(1, 8)->Range(16, 1 << 20);
+BENCHMARK(bm_vector_bool_ranges_count)->DenseRange(1, 8)->Range(16, 1 << 15);
 
 BENCHMARK_MAIN();

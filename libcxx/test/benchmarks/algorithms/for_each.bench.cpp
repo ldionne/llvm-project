@@ -20,6 +20,6 @@ static void bm_deque_for_each(benchmark::State& state) {
         std::for_each(vec1.begin(), vec1.end(), [](char& v) { v = std::clamp(v, (char)10, (char)100); }));
   }
 }
-BENCHMARK(bm_deque_for_each)->DenseRange(1, 8)->Range(16, 1 << 20);
+BENCHMARK(bm_deque_for_each)->DenseRange(1, 8)->Range(16, 1 << 15);
 
 BENCHMARK_MAIN();

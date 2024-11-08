@@ -21,7 +21,7 @@ static void bm_equal_iter(benchmark::State& state) {
     benchmark::DoNotOptimize(std::equal(vec1.begin(), vec1.end(), vec2.begin()));
   }
 }
-BENCHMARK(bm_equal_iter)->DenseRange(1, 8)->Range(16, 1 << 20);
+BENCHMARK(bm_equal_iter)->DenseRange(1, 8)->Range(16, 1 << 15);
 
 static void bm_equal(benchmark::State& state) {
   std::vector<char> vec1(state.range(), '1');
@@ -32,7 +32,7 @@ static void bm_equal(benchmark::State& state) {
     benchmark::DoNotOptimize(std::equal(vec1.begin(), vec1.end(), vec2.begin(), vec2.end()));
   }
 }
-BENCHMARK(bm_equal)->DenseRange(1, 8)->Range(16, 1 << 20);
+BENCHMARK(bm_equal)->DenseRange(1, 8)->Range(16, 1 << 15);
 
 static void bm_ranges_equal(benchmark::State& state) {
   std::vector<char> vec1(state.range(), '1');
@@ -43,6 +43,6 @@ static void bm_ranges_equal(benchmark::State& state) {
     benchmark::DoNotOptimize(std::ranges::equal(vec1, vec2));
   }
 }
-BENCHMARK(bm_ranges_equal)->DenseRange(1, 8)->Range(16, 1 << 20);
+BENCHMARK(bm_ranges_equal)->DenseRange(1, 8)->Range(16, 1 << 15);
 
 BENCHMARK_MAIN();
