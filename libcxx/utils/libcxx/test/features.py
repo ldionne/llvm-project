@@ -71,6 +71,17 @@ def _mingwSupportsModules(cfg):
     )
 
 
+def has_localization(cfg) -> bool:
+    macros = compilerMacros(cfg)
+    if not "_LIBCPP_VERSION" in macros:
+        return True
+    elif "_LIBCPP_HAS_LOCALIZATION" not in macros: # older versions of libc++
+        return "_LIBCPP_HAS_NO_LOCALIZATION" not in macros
+    elif macros["_LIBCPP_HAS_LOCALIZATION"] == "1":
+        return True
+    else:
+        return False
+
 # Lit features are evaluated in order. Some checks may require the compiler detection to have
 # run first in order to work properly.
 DEFAULT_FEATURES = [
@@ -223,10 +234,7 @@ DEFAULT_FEATURES = [
     # https://developercommunity.visualstudio.com/t/utf-8-locales-break-ctype-functions-for-wchar-type/1653678
     Feature(
         name="win32-broken-utf8-wchar-ctype",
-        when=lambda cfg: not "_LIBCPP_HAS_LOCALIZATION" in compilerMacros(cfg)
-        or compilerMacros(cfg)["_LIBCPP_HAS_LOCALIZATION"] == "1"
-        and "_WIN32" in compilerMacros(cfg)
-        and not programSucceeds(
+        when=lambda cfg: has_localization(cfg) and "_WIN32" in compilerMacros(cfg) and not programSucceeds(
             cfg,
             """
             #include <locale.h>
@@ -280,9 +288,7 @@ DEFAULT_FEATURES = [
     # mon_decimal_point == ".", which our tests don't handle.
     Feature(
         name="glibc-old-ru_RU-decimal-point",
-        when=lambda cfg: not "_LIBCPP_HAS_LOCALIZATION" in compilerMacros(cfg)
-        or compilerMacros(cfg)["_LIBCPP_HAS_LOCALIZATION"] == "1"
-        and not programSucceeds(
+        when=lambda cfg: has_localization(cfg) and not programSucceeds(
             cfg,
             """
             #include <locale.h>

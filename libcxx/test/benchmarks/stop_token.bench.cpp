@@ -182,6 +182,7 @@ void BM_stop_token_async_reg_unreg_callback(benchmark::State& state) {
 
   ss.request_stop();
 }
-BENCHMARK(BM_stop_token_async_reg_unreg_callback)->RangeMultiplier(2)->Range(1 << 10, 1 << 24);
+// Temporarily disabled because it crashes on macOS
+// BENCHMARK(BM_stop_token_async_reg_unreg_callback)->RangeMultiplier(2)->Range(1 << 10, 1 << 24);
 
 BENCHMARK_MAIN();

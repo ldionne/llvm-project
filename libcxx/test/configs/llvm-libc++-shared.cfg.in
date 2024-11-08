@@ -3,15 +3,28 @@
 
 lit_config.load_config(config, '@CMAKE_CURRENT_BINARY_DIR@/cmake-bridge.cfg')
 
-config.substitutions.append(('%{flags}',
-    '-pthread' + (' -isysroot {}'.format('@CMAKE_OSX_SYSROOT@') if '@CMAKE_OSX_SYSROOT@' else '')
-))
+import os, site
+site.addsitedir(os.path.join('@LIBCXX_SOURCE_DIR@', 'utils'))
+import libcxx.test.params, libcxx.test.config, libcxx.test.dsl
+ADDITIONAL_PARAMETERS = [
+    libcxx.test.dsl.Parameter(name='prefix', type=str,
+        actions=lambda path: [libcxx.test.dsl.AddSubstitution('%{prefix}', path)],
+        help="""
+        Prefix to a pre-installed root of libc++. The test suite will be built and run against it.
+        """),
+]
+
+sysroot = ' -isysroot {}'.format('@CMAKE_OSX_SYSROOT@') if '@CMAKE_OSX_SYSROOT@' else ''
+config.substitutions.append(('%{flags}', '-pthread' + sysroot))
+
 config.substitutions.append(('%{compile_flags}',
-    '-nostdinc++ -I %{target-include-dir} -I %{include-dir} -I %{libcxx-dir}/test/support'
+    '-nostdinc++ -I %{prefix}/include/c++/v1 -I %{libcxx-dir}/test/support'
 ))
+
 config.substitutions.append(('%{link_flags}',
-    '-nostdlib++ -L %{lib-dir} -Wl,-rpath,%{lib-dir} -lc++'
+    '-nostdlib++ -L %{prefix}/lib -Wl,-rpath,%{prefix}/lib -lc++'
 ))
+
 config.substitutions.append(('%{exec}',
     '%{executor} --execdir %T -- '
 ))
@@ -20,7 +33,7 @@ import os, site
 site.addsitedir(os.path.join('@LIBCXX_SOURCE_DIR@', 'utils'))
 import libcxx.test.params, libcxx.test.config
 libcxx.test.config.configure(
-    libcxx.test.params.DEFAULT_PARAMETERS,
+    libcxx.test.params.DEFAULT_PARAMETERS + ADDITIONAL_PARAMETERS,
     libcxx.test.features.DEFAULT_FEATURES,
     config,
     lit_config
