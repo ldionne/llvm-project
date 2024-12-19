@@ -2,6 +2,44 @@
 # Build Google Benchmark
 #==============================================================================
 
+if (BENCHMARK_USE_LIBSTDCXX)
+
+include(ExternalProject)
+set(BENCHMARK_COMPILE_FLAGS
+    -Wno-unused-command-line-argument
+    ${SANITIZER_FLAGS}
+    )
+list(APPEND BENCHMARK_COMPILE_FLAGS "-nostdinc++" "-isystem ${LIBSTDCXX_PREFIX}/include/c++/14" "-isystem ${LIBSTDCXX_PREFIX}/include/c++/14/${LIBSTDCXX_TRIPLE}" "-nostdlib++" "-L${LIBSTDCXX_PREFIX}/lib/gcc/14" "-lstdc++")
+
+split_list(BENCHMARK_COMPILE_FLAGS)
+
+set(BENCHMARK_CXX_LIBRARIES)
+list(APPEND BENCHMARK_CXX_LIBRARIES c++)
+if (NOT LIBCXX_ENABLE_SHARED)
+  list(APPEND BENCHMARK_CXX_LIBRARIES c++abi)
+endif()
+
+ExternalProject_Add(google-benchmark
+        EXCLUDE_FROM_ALL ON
+        DEPENDS cxx cxx-headers
+        PREFIX google-benchmark
+        SOURCE_DIR ${LLVM_THIRD_PARTY_DIR}/benchmark
+        INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/google-benchmark
+        CMAKE_CACHE_ARGS
+          -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
+          -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
+          -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
+          -DCMAKE_BUILD_TYPE:STRING=RELEASE
+          -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+          -DCMAKE_CXX_FLAGS:STRING=${BENCHMARK_COMPILE_FLAGS}
+          -DBENCHMARK_USE_LIBCXX:BOOL=OFF
+          -DBENCHMARK_ENABLE_TESTING:BOOL=OFF
+          -DBENCHMARK_CXX_LIBRARIES:STRING=${BENCHMARK_CXX_LIBRARIES})
+
+add_dependencies(cxx-test-depends google-benchmark)
+
+else()
+
 include(ExternalProject)
 set(BENCHMARK_COMPILE_FLAGS
     -Wno-unused-command-line-argument
@@ -46,3 +84,5 @@ ExternalProject_Add(google-benchmark
           -DBENCHMARK_CXX_LIBRARIES:STRING=${BENCHMARK_CXX_LIBRARIES})
 
 add_dependencies(cxx-test-depends google-benchmark)
+
+endif()
