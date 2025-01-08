@@ -12,7 +12,7 @@
 
 #include <__config>
 
-#if _LIBCPP_HAS_LOCALIZATION
+#if 1
 
 #  include <__format/concepts.h>
 #  include <__format/format_error.h>
@@ -416,6 +416,6 @@ private:
 
 _LIBCPP_END_NAMESPACE_STD
 
-#endif // _LIBCPP_HAS_LOCALIZATION
+#endif // 1
 
 #endif // _LIBCPP___CHRONO_PARSER_STD_FORMAT_SPEC_H

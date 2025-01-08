@@ -1741,17 +1741,11 @@
 #   error "__cpp_lib_print should not be defined before c++23"
 # endif
 
-# if !defined(_LIBCPP_VERSION) || _LIBCPP_HAS_LOCALIZATION
-#   ifndef __cpp_lib_quoted_string_io
-#     error "__cpp_lib_quoted_string_io should be defined in c++14"
-#   endif
-#   if __cpp_lib_quoted_string_io != 201304L
-#     error "__cpp_lib_quoted_string_io should have the value 201304L in c++14"
-#   endif
-# else
-#   ifdef __cpp_lib_quoted_string_io
-#     error "__cpp_lib_quoted_string_io should not be defined when the requirement '!defined(_LIBCPP_VERSION) || _LIBCPP_HAS_LOCALIZATION' is not met!"
-#   endif
+# ifndef __cpp_lib_quoted_string_io
+#   error "__cpp_lib_quoted_string_io should be defined in c++14"
+# endif
+# if __cpp_lib_quoted_string_io != 201304L
+#   error "__cpp_lib_quoted_string_io should have the value 201304L in c++14"
 # endif
 
 # ifdef __cpp_lib_ranges
@@ -2824,17 +2818,11 @@
 #   error "__cpp_lib_print should not be defined before c++23"
 # endif
 
-# if !defined(_LIBCPP_VERSION) || _LIBCPP_HAS_LOCALIZATION
-#   ifndef __cpp_lib_quoted_string_io
-#     error "__cpp_lib_quoted_string_io should be defined in c++17"
-#   endif
-#   if __cpp_lib_quoted_string_io != 201304L
-#     error "__cpp_lib_quoted_string_io should have the value 201304L in c++17"
-#   endif
-# else
-#   ifdef __cpp_lib_quoted_string_io
-#     error "__cpp_lib_quoted_string_io should not be defined when the requirement '!defined(_LIBCPP_VERSION) || _LIBCPP_HAS_LOCALIZATION' is not met!"
-#   endif
+# ifndef __cpp_lib_quoted_string_io
+#   error "__cpp_lib_quoted_string_io should be defined in c++17"
+# endif
+# if __cpp_lib_quoted_string_io != 201304L
+#   error "__cpp_lib_quoted_string_io should have the value 201304L in c++17"
 # endif
 
 # ifdef __cpp_lib_ranges
@@ -4171,17 +4159,11 @@
 #   error "__cpp_lib_print should not be defined before c++23"
 # endif
 
-# if !defined(_LIBCPP_VERSION) || _LIBCPP_HAS_LOCALIZATION
-#   ifndef __cpp_lib_quoted_string_io
-#     error "__cpp_lib_quoted_string_io should be defined in c++20"
-#   endif
-#   if __cpp_lib_quoted_string_io != 201304L
-#     error "__cpp_lib_quoted_string_io should have the value 201304L in c++20"
-#   endif
-# else
-#   ifdef __cpp_lib_quoted_string_io
-#     error "__cpp_lib_quoted_string_io should not be defined when the requirement '!defined(_LIBCPP_VERSION) || _LIBCPP_HAS_LOCALIZATION' is not met!"
-#   endif
+# ifndef __cpp_lib_quoted_string_io
+#   error "__cpp_lib_quoted_string_io should be defined in c++20"
+# endif
+# if __cpp_lib_quoted_string_io != 201304L
+#   error "__cpp_lib_quoted_string_io should have the value 201304L in c++20"
 # endif
 
 # ifndef __cpp_lib_ranges
@@ -5686,17 +5668,11 @@
 #   error "__cpp_lib_print should have the value 202207L in c++23"
 # endif
 
-# if !defined(_LIBCPP_VERSION) || _LIBCPP_HAS_LOCALIZATION
-#   ifndef __cpp_lib_quoted_string_io
-#     error "__cpp_lib_quoted_string_io should be defined in c++23"
-#   endif
-#   if __cpp_lib_quoted_string_io != 201304L
-#     error "__cpp_lib_quoted_string_io should have the value 201304L in c++23"
-#   endif
-# else
-#   ifdef __cpp_lib_quoted_string_io
-#     error "__cpp_lib_quoted_string_io should not be defined when the requirement '!defined(_LIBCPP_VERSION) || _LIBCPP_HAS_LOCALIZATION' is not met!"
-#   endif
+# ifndef __cpp_lib_quoted_string_io
+#   error "__cpp_lib_quoted_string_io should be defined in c++23"
+# endif
+# if __cpp_lib_quoted_string_io != 201304L
+#   error "__cpp_lib_quoted_string_io should have the value 201304L in c++23"
 # endif
 
 # ifndef __cpp_lib_ranges
@@ -7011,7 +6987,7 @@
 #   endif
 # endif
 
-# if !defined(_LIBCPP_VERSION) || (_LIBCPP_HAS_FILESYSTEM && _LIBCPP_HAS_LOCALIZATION)
+# if !defined(_LIBCPP_VERSION) || _LIBCPP_HAS_FILESYSTEM
 #   ifndef __cpp_lib_fstream_native_handle
 #     error "__cpp_lib_fstream_native_handle should be defined in c++26"
 #   endif
@@ -7020,7 +6996,7 @@
 #   endif
 # else
 #   ifdef __cpp_lib_fstream_native_handle
-#     error "__cpp_lib_fstream_native_handle should not be defined when the requirement '!defined(_LIBCPP_VERSION) || (_LIBCPP_HAS_FILESYSTEM && _LIBCPP_HAS_LOCALIZATION)' is not met!"
+#     error "__cpp_lib_fstream_native_handle should not be defined when the requirement '!defined(_LIBCPP_VERSION) || _LIBCPP_HAS_FILESYSTEM' is not met!"
 #   endif
 # endif
 
@@ -7564,17 +7540,11 @@
 #   error "__cpp_lib_print should have the value 202207L in c++26"
 # endif
 
-# if !defined(_LIBCPP_VERSION) || _LIBCPP_HAS_LOCALIZATION
-#   ifndef __cpp_lib_quoted_string_io
-#     error "__cpp_lib_quoted_string_io should be defined in c++26"
-#   endif
-#   if __cpp_lib_quoted_string_io != 201304L
-#     error "__cpp_lib_quoted_string_io should have the value 201304L in c++26"
-#   endif
-# else
-#   ifdef __cpp_lib_quoted_string_io
-#     error "__cpp_lib_quoted_string_io should not be defined when the requirement '!defined(_LIBCPP_VERSION) || _LIBCPP_HAS_LOCALIZATION' is not met!"
-#   endif
+# ifndef __cpp_lib_quoted_string_io
+#   error "__cpp_lib_quoted_string_io should be defined in c++26"
+# endif
+# if __cpp_lib_quoted_string_io != 201304L
+#   error "__cpp_lib_quoted_string_io should have the value 201304L in c++26"
 # endif
 
 # ifndef __cpp_lib_ranges

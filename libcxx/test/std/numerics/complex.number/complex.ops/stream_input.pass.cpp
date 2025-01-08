@@ -6,8 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-// UNSUPPORTED: no-localization
-
 // <complex>
 
 // template<class T, class charT, class traits>

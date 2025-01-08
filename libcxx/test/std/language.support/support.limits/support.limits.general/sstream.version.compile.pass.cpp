@@ -11,8 +11,6 @@
 //
 // clang-format off
 
-// UNSUPPORTED: no-localization
-
 // <sstream>
 
 // Test the feature test macros defined by <sstream>

@@ -6,8 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-// UNSUPPORTED: no-localization
-
 // <random>
 
 // class bernoulli_distribution

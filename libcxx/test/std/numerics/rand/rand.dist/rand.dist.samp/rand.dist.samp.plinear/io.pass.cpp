@@ -6,8 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-// UNSUPPORTED: no-localization
-
 // <random>
 
 // template<class RealType = double>

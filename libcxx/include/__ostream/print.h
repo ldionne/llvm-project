@@ -11,7 +11,7 @@
 
 #include <__config>
 
-#if _LIBCPP_HAS_LOCALIZATION
+#if 1
 
 #  include <__fwd/ostream.h>
 #  include <__iterator/ostreambuf_iterator.h>
@@ -179,6 +179,6 @@ _LIBCPP_HIDE_FROM_ABI inline void println(ostream& __os) {
 
 _LIBCPP_END_NAMESPACE_STD
 
-#endif // _LIBCPP_HAS_LOCALIZATION
+#endif // 1
 
 #endif // _LIBCPP___OSTREAM_PRINT_H

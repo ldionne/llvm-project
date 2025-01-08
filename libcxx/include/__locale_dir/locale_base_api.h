@@ -104,7 +104,9 @@
 //  int     __sscanf(const char*, __locale_t, const char*, ...);
 // }
 
-#if defined(__APPLE__)
+#if !_LIBCPP_HAS_LOCALIZATION
+#  include <__locale_dir/support/no_locale.h>
+#elif defined(__APPLE__)
 #  include <__locale_dir/support/apple.h>
 #elif defined(__FreeBSD__)
 #  include <__locale_dir/support/freebsd.h>

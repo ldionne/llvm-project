@@ -7,7 +7,6 @@
 //===----------------------------------------------------------------------===//
 
 // UNSUPPORTED: c++03, c++11, c++14, c++17
-// UNSUPPORTED: no-localization
 // UNSUPPORTED: GCC-ALWAYS_INLINE-FIXME
 
 // REQUIRES: locale.en_US.UTF-8
@@ -62,10 +61,7 @@ void test() {
     context.out() = CharT('a');
     assert(output.size() == 1);
     assert(output.front() == CharT('a'));
-
-#ifndef TEST_HAS_NO_LOCALIZATION
     assert(context.locale() == std::locale());
-#endif
   }
 
 #ifndef TEST_HAS_NO_LOCALIZATION
@@ -110,7 +106,7 @@ void test() {
     assert(context.locale() == fr_FR);
     assert(context.locale() != en_US);
   }
-#endif
+#endif // TEST_HAS_NO_LOCALIZATION
 }
 
 // The default constructor is suppressed by the deleted copy operations.

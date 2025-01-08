@@ -7,7 +7,6 @@
 //===----------------------------------------------------------------------===//
 
 // UNSUPPORTED: c++03, c++11, c++14, c++17
-// UNSUPPORTED: no-localization
 
 // Check LWG-3698: `regex_iterator` and `join_view` don't work together very well
 

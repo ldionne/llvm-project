@@ -8,7 +8,6 @@
 //===----------------------------------------------------------------------===//
 
 export namespace std {
-#if _LIBCPP_HAS_LOCALIZATION
   using std::get_money;
   using std::get_time;
   using std::put_money;
@@ -21,5 +20,4 @@ export namespace std {
   using std::setw;
 
   using std::quoted;
-#endif // _LIBCPP_HAS_LOCALIZATION
 } // namespace std

@@ -11,8 +11,6 @@
 //
 // clang-format off
 
-// UNSUPPORTED: no-localization
-
 // <syncstream>
 
 // Test the feature test macros defined by <syncstream>

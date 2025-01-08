@@ -13,6 +13,7 @@
 #include <deque>
 #include <exception>
 #include <expected>
+#include <locale>
 #include <memory>
 #include <optional>
 #include <string>
@@ -23,10 +24,6 @@
 #include "constexpr_char_traits.h"
 #include "test_allocator.h"
 #include "test_macros.h"
-
-#ifndef TEST_HAS_NO_LOCALIZATION
-#  include <locale>
-#endif
 
 static_assert(std::__libcpp_is_trivially_relocatable<char>::value, "");
 static_assert(std::__libcpp_is_trivially_relocatable<int>::value, "");
@@ -138,9 +135,7 @@ static_assert(
 #endif
 
 // locale
-#ifndef TEST_HAS_NO_LOCALIZATION
 static_assert(std::__libcpp_is_trivially_relocatable<std::locale>::value, "");
-#endif
 
 // optional
 #if TEST_STD_VER >= 17

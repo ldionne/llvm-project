@@ -9,21 +9,16 @@
 #ifndef TEST_SUPPORT_CONCAT_MACROS_H
 #define TEST_SUPPORT_CONCAT_MACROS_H
 
+#include <concepts>
 #include <cstdio>
+#include <iterator>
+#include <sstream>
 #include <string>
 
 #include "assert_macros.h"
 #include "test_macros.h"
 
-#ifndef TEST_HAS_NO_LOCALIZATION
-#  include <concepts>
-#  include <iterator>
-#  include <sstream>
-#endif
-
 #if TEST_STD_VER > 17
-
-#  ifndef TEST_HAS_NO_LOCALIZATION
 
 [[nodiscard]] constexpr bool test_is_high_surrogate(char32_t value) { return value >= 0xd800 && value <= 0xdbff; }
 
@@ -163,7 +158,6 @@ std::ostream& test_concat(std::ostream& stream, T&& value) {
   }
   return stream;
 }
-#  endif // TEST_HAS_NO_LOCALIZATION
 
 // If possible concatenates message for the assertion function, else returns a
 // default message. Not being able to stream is not considered an error. For
@@ -175,13 +169,11 @@ std::ostream& test_concat(std::ostream& stream, T&& value) {
 // assert_macros.h.
 template <class... Args>
 std::string test_concat_message([[maybe_unused]] Args&&... args) {
-#  ifndef TEST_HAS_NO_LOCALIZATION
   if constexpr ((test_can_concat<Args> && ...)) {
     std::stringstream sstr;
     ((test_concat(sstr, std::forward<Args>(args))), ...);
     return sstr.str();
   } else
-#  endif // TEST_HAS_NO_LOCALIZATION
     return "Message discarded since it can't be streamed to std::cerr.\n";
 }
 

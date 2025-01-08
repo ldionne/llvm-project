@@ -11,7 +11,7 @@
 
 #include <__config>
 
-#if _LIBCPP_HAS_LOCALIZATION
+#if 1
 
 #  include <__cstddef/size_t.h>
 #  include <__fwd/ostream.h>
@@ -54,6 +54,6 @@ __put_character_sequence(basic_ostream<_CharT, _Traits>& __os, const _CharT* __s
 
 _LIBCPP_END_NAMESPACE_STD
 
-#endif // _LIBCPP_HAS_LOCALIZATION
+#endif // 1
 
 #endif // _LIBCPP___OSTREAM_PUT_CHARACTER_SEQUENCE_H

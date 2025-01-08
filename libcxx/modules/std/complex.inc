@@ -19,10 +19,8 @@ export namespace std {
   using std::operator/;
 
   using std::operator==;
-#if _LIBCPP_HAS_LOCALIZATION
   using std::operator>>;
   using std::operator<<;
-#endif // _LIBCPP_HAS_LOCALIZATION
 
   // [complex.value.ops], values
   using std::imag;

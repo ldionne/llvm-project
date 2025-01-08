@@ -11,8 +11,6 @@
 //
 // clang-format off
 
-// UNSUPPORTED: no-localization
-
 // <istream>
 
 // Test the feature test macros defined by <istream>

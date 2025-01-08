@@ -15,8 +15,6 @@
 
 // Test the fix for https://llvm.org/PR44847.
 
-// Serializing/deserializing the state of the RNG requires iostreams
-// UNSUPPORTED: no-localization
 
 // Very slow when run in qemu.
 // REQUIRES: long_tests

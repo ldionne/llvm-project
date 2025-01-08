@@ -12,7 +12,7 @@
 
 #include <__config>
 
-#if _LIBCPP_HAS_LOCALIZATION
+#if 1
 
 #  include <__chrono/calendar.h>
 #  include <__chrono/day.h>
@@ -335,6 +335,6 @@ operator<<(basic_ostream<_CharT, _Traits>& __os, const zoned_time<_Duration, _Ti
 
 _LIBCPP_END_NAMESPACE_STD
 
-#endif // _LIBCPP_HAS_LOCALIZATION
+#endif // 1
 
 #endif // _LIBCPP___CHRONO_OSTREAM_H

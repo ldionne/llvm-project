@@ -8,7 +8,6 @@
 
 // UNSUPPORTED: c++03, c++11
 // UNSUPPORTED: no-exceptions
-// UNSUPPORTED: no-localization
 
 #include <cstddef>
 #include <cstdint>

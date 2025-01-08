@@ -86,9 +86,10 @@ option(LIBCXX_ENABLE_RANDOM_DEVICE
 option(LIBCXX_ENABLE_LOCALIZATION
   "Whether to include support for localization in the library. Disabling
    localization can be useful when porting to platforms that don't support
-   the C locale API (e.g. embedded). When localization is not supported,
-   several parts of the library will be disabled: <iostream>, <regex>, <locale>
-   will be completely unusable, and other parts may be only partly available." ON)
+   the C locale API (e.g. embedded). When localization is not supported, the
+   library will implement a basic localization API that only supports the C
+   locale, which will cause several other parts of the library to have reduced
+   functionality (like <iostream>, <regex>, etc)." ON)
 option(LIBCXX_ENABLE_UNICODE
   "Whether to include support for Unicode in the library. Disabling Unicode can
    be useful when porting to platforms that don't support UTF-8 encoding (e.g.

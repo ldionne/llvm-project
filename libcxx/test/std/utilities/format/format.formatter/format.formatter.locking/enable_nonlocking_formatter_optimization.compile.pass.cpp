@@ -40,6 +40,7 @@
 #include <memory>
 #include <optional>
 #include <queue>
+#include <regex>
 #include <set>
 #include <span>
 #include <stack>
@@ -55,9 +56,6 @@
 #include "test_macros.h"
 #include "min_allocator.h"
 
-#ifndef TEST_HAS_NO_LOCALIZATION
-#  include <regex>
-#endif
 #ifndef TEST_HAS_NO_THREADS
 #  include <thread>
 #endif
@@ -109,16 +107,6 @@ void test_P0645() {
 // chrono yet. After P1361 has been implemented these formatters should be all
 // enabled.
 void test_P1361() {
-// The chrono formatters require localization support.
-// [time.format]/7
-//   If the chrono-specs is omitted, the chrono object is formatted as if by
-//   streaming it to std::ostringstream os with the formatting
-//   locale imbued and copying os.str() through the output iterator of the
-//   context with additional padding and adjustments as specified by the format
-//   specifiers.
-// In libc++ std:::ostringstream requires localization support.
-#ifndef TEST_HAS_NO_LOCALIZATION
-
   static_assert(!std::enable_nonlocking_formatter_optimization<std::chrono::microseconds>);
 
   static_assert(!std::enable_nonlocking_formatter_optimization<std::chrono::sys_time<std::chrono::microseconds>>);
@@ -153,8 +141,6 @@ void test_P1361() {
   //static_assert(!std::enable_nonlocking_formatter_optimization<std::chrono::local_info>);
 
   //static_assert(!std::enable_nonlocking_formatter_optimization<std::chrono::zoned_time>);
-
-#endif // TEST_HAS_NO_LOCALIZATION
 }
 
 // Tests for P1636 Formatters for library types

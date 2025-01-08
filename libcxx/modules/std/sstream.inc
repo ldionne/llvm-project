@@ -8,7 +8,6 @@
 //===----------------------------------------------------------------------===//
 
 export namespace std {
-#if _LIBCPP_HAS_LOCALIZATION
   using std::basic_stringbuf;
 
   using std::swap;
@@ -38,5 +37,4 @@ export namespace std {
 #  if _LIBCPP_HAS_WIDE_CHARACTERS
   using std::wstringstream;
 #  endif
-#endif // _LIBCPP_HAS_LOCALIZATION
 } // namespace std

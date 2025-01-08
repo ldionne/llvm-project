@@ -25,6 +25,7 @@
 #include <cassert>
 #include <concepts>
 #include <cstdint>
+#include <iostream>
 #include <iterator>
 #include <list>
 #include <vector>
@@ -34,10 +35,6 @@
 #include "test_format_string.h"
 #include "assert_macros.h"
 #include "concat_macros.h"
-
-#ifndef TEST_HAS_NO_LOCALIZATION
-#  include <iostream>
-#endif
 
 #define SV(S) MAKE_STRING_VIEW(CharT, S)
 
@@ -49,12 +46,10 @@ auto test_format = []<class CharT, class... Args>(
                  TEST_WRITE_CONCATENATED(
                      "\nFormat string   ", fmt.get(), "\nExpected output ", expected, "\nActual output   ", out, '\n'));
   }
-#ifndef TEST_HAS_NO_LOCALIZATION
   {
     std::basic_string<CharT> out = std::format(std::locale(), fmt, std::forward<Args>(args)...);
     assert(out == expected);
   }
-#endif // TEST_HAS_NO_LOCALIZATION
 };
 
 auto test_format_to =
@@ -66,14 +61,12 @@ auto test_format_to =
         assert(it == out.end());
         assert(out == expected);
       }
-#ifndef TEST_HAS_NO_LOCALIZATION
       {
         std::basic_string<CharT> out(expected.size(), CharT(' '));
         auto it = std::format_to(out.begin(), std::locale(), fmt, std::forward<Args>(args)...);
         assert(it == out.end());
         assert(out == expected);
       }
-#endif // TEST_HAS_NO_LOCALIZATION
       {
         std::list<CharT> out;
         std::format_to(std::back_inserter(out), fmt, std::forward<Args>(args)...);
@@ -101,12 +94,10 @@ auto test_formatted_size =
         std::size_t size = std::formatted_size(fmt, std::forward<Args>(args)...);
         assert(size == expected.size());
       }
-#ifndef TEST_HAS_NO_LOCALIZATION
       {
         std::size_t size = std::formatted_size(std::locale(), fmt, std::forward<Args>(args)...);
         assert(size == expected.size());
       }
-#endif // TEST_HAS_NO_LOCALIZATION
     };
 
 auto test_format_to_n =
@@ -120,7 +111,6 @@ auto test_format_to_n =
         assert(result.out == out.end());
         assert(out == expected);
       }
-#ifndef TEST_HAS_NO_LOCALIZATION
       {
         std::size_t n = expected.size();
         std::basic_string<CharT> out(n, CharT(' '));
@@ -130,7 +120,6 @@ auto test_format_to_n =
         assert(result.out == out.end());
         assert(out == expected);
       }
-#endif // TEST_HAS_NO_LOCALIZATION
       {
         std::ptrdiff_t n = 0;
         std::basic_string<CharT> out;

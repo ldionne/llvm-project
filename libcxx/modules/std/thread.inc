@@ -29,9 +29,7 @@ export namespace std {
   // [thread.thread.id]
   using std::operator==;
   using std::operator<=>;
-#  if _LIBCPP_HAS_LOCALIZATION
   using std::operator<<;
-#  endif // _LIBCPP_HAS_LOCALIZATION
 
 #  if _LIBCPP_STD_VER >= 23
   using std::formatter;

@@ -21,7 +21,6 @@
 // steady_clock requires threads.
 // UNSUPPORTED: no-threads
 // UNSUPPORTED: no-random-device
-// UNSUPPORTED: no-localization
 
 // XFAIL: LIBCXX-AIX-FIXME
 

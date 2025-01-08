@@ -10,7 +10,7 @@
 
 // `check_assertion.h` is only available starting from C++11 and requires Unix headers and regex support.
 // REQUIRES: has-unix-headers
-// UNSUPPORTED: c++03, no-localization
+// UNSUPPORTED: c++03
 // ADDITIONAL_COMPILE_FLAGS: -U_LIBCPP_HARDENING_MODE -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_NONE
 
 #include <cassert>

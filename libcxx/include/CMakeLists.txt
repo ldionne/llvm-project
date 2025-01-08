@@ -513,6 +513,7 @@ set(files
   __locale_dir/support/fuchsia.h
   __locale_dir/support/no_locale/characters.h
   __locale_dir/support/no_locale/strtonum.h
+  __locale_dir/support/no_locale.h
   __locale_dir/support/windows.h
   __math/abs.h
   __math/copysign.h

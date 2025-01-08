@@ -28,6 +28,8 @@
 
 #include <format>
 #include <cassert>
+#include <iostream>
+#include <type_traits>
 #include <vector>
 
 #include "make_string.h"
@@ -35,22 +37,15 @@
 #include "string_literal.h"
 #include "test_format_string.h"
 
-#ifndef TEST_HAS_NO_LOCALIZATION
-#  include <iostream>
-#  include <type_traits>
-#endif
-
 #define SV(S) MAKE_STRING_VIEW(CharT, S)
 
 template < class CharT, class... Args>
 void check(std::basic_string_view<CharT> expected, test_format_string<CharT, Args...> fmt, Args&&... args) {
   std::basic_string<CharT> out = std::format(fmt, std::forward<Args>(args)...);
-#ifndef TEST_HAS_NO_LOCALIZATION
   if constexpr (std::same_as<CharT, char>)
     if (out != expected)
       std::cerr << "\nFormat string   " << fmt.get() << "\nExpected output " << expected << "\nActual output   " << out
                 << '\n';
-#endif
   assert(out == expected);
 };
 
@@ -140,7 +135,7 @@ static void test_single_code_point_truncate() {
   check(SV("***"), SV("{:*^3.1}"), SV("\u2e80")); // CJK RADICAL REPEAT
   check(SV("***"), SV("{:*^3.1}"), SV("\u303e")); // IDEOGRAPHIC VARIATION INDICATOR
 
-  check(SV("***"), SV("{:*^3.1}"), SV("\u3041")); // U+3041 HIRAGANA LETTER SMALL A
+  check(SV("***"), SV("{:*^3.1}"), SV("\u3041"));      // U+3041 HIRAGANA LETTER SMALL A
   check(SV("*\ua4d0*"), SV("{:*^3.1}"), SV("\ua4d0")); // U+A4D0 LISU LETTER BA
 
   check(SV("***"), SV("{:*^3.1}"), SV("\uac00")); // <Hangul Syllable, First>
@@ -152,10 +147,10 @@ static void test_single_code_point_truncate() {
   check(SV("***"), SV("{:*^3.1}"), SV("\ufe10")); // PRESENTATION FORM FOR VERTICAL COMMA
   check(SV("***"), SV("{:*^3.1}"), SV("\ufe19")); // PRESENTATION FORM FOR VERTICAL HORIZONTAL ELLIPSIS
 
-  check(SV("***"), SV("{:*^3.1}"), SV("\ufe30")); // PRESENTATION FORM FOR VERTICAL TWO DOT LEADER
+  check(SV("***"), SV("{:*^3.1}"), SV("\ufe30"));      // PRESENTATION FORM FOR VERTICAL TWO DOT LEADER
   check(SV("*\ufe70*"), SV("{:*^3.1}"), SV("\ufe70")); // U+FE70 ARABIC FATHATAN ISOLATED FORM
 
-  check(SV("***"), SV("{:*^3.1}"), SV("\uff01"));      // U+FF01 FULLWIDTH EXCLAMATION MARK
+  check(SV("***"), SV("{:*^3.1}"), SV("\uff01")); // U+FF01 FULLWIDTH EXCLAMATION MARK
   check(SV("***"), SV("{:*^3.1}"), SV("\uff60")); // FULLWIDTH RIGHT WHITE PARENTHESIS
 
   check(SV("***"), SV("{:*^3.1}"), SV("\uffe0")); // FULLWIDTH CENT SIGN

@@ -11,8 +11,6 @@
 //
 // clang-format off
 
-// UNSUPPORTED: no-localization
-
 // <ios>
 
 // Test the feature test macros defined by <ios>

@@ -6,7 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-// UNSUPPORTED: no-localization
 // UNSUPPORTED: c++03, c++11, c++14, c++17
 
 // friend bool operator==(const iterator& x, default_sentinel_t);

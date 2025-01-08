@@ -14,12 +14,9 @@
 // UNSUPPORTED: c++03, c++11, c++14, c++17
 
 #include <format>
+#include <locale>
 
 #include "test_macros.h"
-
-#ifndef TEST_HAS_NO_LOCALIZATION
-#  include <locale>
-#endif
 
 void test() {
   // clang-format off
@@ -35,7 +32,6 @@ void test() {
   std::make_wformat_args(); // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
 #endif // TEST_HAS_NO_WIDE_CHARACTERS
 
-#ifndef TEST_HAS_NO_LOCALIZATION
   std::format(std::locale::classic(), ""); // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
   std::vformat(std::locale::classic(), "", std::make_format_args()); // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
   std::formatted_size(std::locale::classic(), ""); // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
@@ -44,6 +40,5 @@ void test() {
   std::vformat(std::locale::classic(), L"", std::make_wformat_args()); // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
   std::formatted_size(std::locale::classic(), L""); // expected-warning {{ignoring return value of function declared with 'nodiscard' attribute}}
 #  endif // TEST_HAS_NO_WIDE_CHARACTERS
-#endif   // TEST_HAS_NO_LOCALIZATION
   // clang-format on
 }

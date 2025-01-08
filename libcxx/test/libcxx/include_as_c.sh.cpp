@@ -29,9 +29,6 @@
 #include <float.h>
 #include <inttypes.h>
 #include <limits.h>
-#if _LIBCPP_HAS_LOCALIZATION
-#  include <locale.h>
-#endif
 #include <math.h>
 #include <setjmp.h>
 #include <stdalign.h>

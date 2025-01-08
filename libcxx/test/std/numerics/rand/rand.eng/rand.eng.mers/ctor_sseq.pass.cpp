@@ -15,8 +15,6 @@
 
 // template<class Sseq> explicit mersenne_twister_engine(Sseq& q);
 
-// Serializing/deserializing the state of the RNG requires iostreams
-// UNSUPPORTED: no-localization
 
 #include <random>
 #include <sstream>

@@ -6,7 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-// UNSUPPORTED: no-localization
 // UNSUPPORTED: c++03, c++11, c++14, c++17
 
 // constexpr default_sentinel_t end() const noexcept;

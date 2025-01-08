@@ -31,10 +31,7 @@
 #endif
 
 #include <format>
-
-#ifndef TEST_HAS_NO_LOCALIZATION
-#  include <locale>
-#endif
+#include <locale>
 
 #ifdef _LIBCPP_VERSION
 
@@ -46,7 +43,6 @@ std::basic_format_context<OutIt, CharT> test_format_context_create(
   return std::__format_context_create(std::move(out_it), args);
 }
 
-#  ifndef TEST_HAS_NO_LOCALIZATION
 /** Creates a std::basic_format_context as-if the formatting function takes locale. */
 template <class OutIt, class CharT>
 std::basic_format_context<OutIt, CharT> test_format_context_create(
@@ -55,7 +51,6 @@ std::basic_format_context<OutIt, CharT> test_format_context_create(
     std::locale loc) {
   return std::__format_context_create(std::move(out_it), args, std::move(loc));
 }
-#  endif // TEST_HAS_NO_LOCALIZATION
 #else    // _LIBCPP_VERSION
 #  error                                                                                                               \
       "Please create a vendor specific version of the test typedef and file a PR at https://github.com/llvm/llvm-project"

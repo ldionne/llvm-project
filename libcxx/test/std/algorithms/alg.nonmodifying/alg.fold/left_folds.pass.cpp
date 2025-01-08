@@ -36,6 +36,7 @@
 #include <iterator>
 #include <list>
 #include <ranges>
+#include <sstream>
 #include <string_view>
 #include <string>
 #include <vector>
@@ -44,10 +45,6 @@
 #include "test_range.h"
 #include "invocable_with_telemetry.h"
 #include "maths.h"
-
-#if !defined(TEST_HAS_NO_LOCALIZATION)
-#  include <sstream>
-#endif
 
 using std::ranges::fold_left;
 using std::ranges::fold_left_with_iter;
@@ -260,7 +257,6 @@ constexpr bool test_case() {
 
 // Most containers aren't constexpr
 void runtime_only_test_case() {
-#if !defined(TEST_HAS_NO_LOCALIZATION)
   { // istream_view is a genuine input range and needs specific handling.
     constexpr auto raw_data = "Shells Orange Syrup Baratie Cocoyashi Loguetown";
     constexpr auto expected = "WindmillShellsOrangeSyrupBaratieCocoyashiLoguetown";
@@ -297,7 +293,6 @@ void runtime_only_test_case() {
       assert(fold_left(data, init, std::plus()) == expected);
     }
   }
-#endif
   {
     auto const data     = std::forward_list<int>{1, 3, 5, 7, 9};
     auto const n        = std::ranges::distance(data);

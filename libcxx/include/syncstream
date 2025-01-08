@@ -122,7 +122,7 @@ namespace std {
 #else
 #  include <__config>
 
-#  if _LIBCPP_HAS_LOCALIZATION
+#  if 1
 
 #    include <__mutex/lock_guard.h>
 #    include <__utility/move.h>
@@ -518,7 +518,7 @@ _LIBCPP_END_NAMESPACE_STD
 
 _LIBCPP_POP_MACROS
 
-#  endif // _LIBCPP_HAS_LOCALIZATION
+#  endif // 1
 #endif   // __cplusplus < 201103L && defined(_LIBCPP_USE_FROZEN_CXX03_HEADERS)
 
 #endif // _LIBCPP_SYNCSTREAM

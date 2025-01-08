@@ -8,7 +8,6 @@
 //===----------------------------------------------------------------------===//
 
 export namespace std {
-#if _LIBCPP_HAS_LOCALIZATION
   using std::fpos;
   // based on [tab:fpos.operations]
   using std::operator!=; // Note not affected by P1614, seems like a bug.
@@ -72,5 +71,4 @@ export namespace std {
 #  if _LIBCPP_HAS_WIDE_CHARACTERS
   using std::wios;
 #  endif
-#endif // _LIBCPP_HAS_LOCALIZATION
 } // namespace std

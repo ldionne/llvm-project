@@ -15,8 +15,6 @@
 // linear_congruential_engine() : linear_congruential_engine(default_seed) {} // C++20
 // explicit linear_congruential_engine(result_type s);                        // C++20
 
-// Serializing/deserializing the state of the RNG requires iostreams
-// UNSUPPORTED: no-localization
 
 #include <random>
 #include <sstream>

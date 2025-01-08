@@ -112,7 +112,7 @@ protected:
 #else
 #  include <__config>
 
-#  if _LIBCPP_HAS_LOCALIZATION
+#  if 1
 
 #    include <__assert>
 #    include <__fwd/streambuf.h>
@@ -382,7 +382,7 @@ _LIBCPP_END_NAMESPACE_STD
 
 _LIBCPP_POP_MACROS
 
-#  endif // _LIBCPP_HAS_LOCALIZATION
+#  endif // 1
 
 #  if !defined(_LIBCPP_REMOVE_TRANSITIVE_INCLUDES) && _LIBCPP_STD_VER <= 20
 #    include <cstdint>

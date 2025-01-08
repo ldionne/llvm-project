@@ -11,7 +11,7 @@
 
 #include <__config>
 
-#if _LIBCPP_HAS_LOCALIZATION
+#if 1
 
 #  include <__exception/operations.h>
 #  include <__fwd/memory.h>
@@ -673,6 +673,6 @@ _LIBCPP_END_NAMESPACE_STD
 
 _LIBCPP_POP_MACROS
 
-#endif // _LIBCPP_HAS_LOCALIZATION
+#endif // 1
 
 #endif // _LIBCPP___OSTREAM_BASIC_OSTREAM_H

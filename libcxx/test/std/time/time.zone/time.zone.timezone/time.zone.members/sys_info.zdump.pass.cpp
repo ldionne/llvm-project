@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 // UNSUPPORTED: c++03, c++11, c++14, c++17
-// UNSUPPORTED: no-filesystem, no-localization, no-tzdb, has-no-zdump
+// UNSUPPORTED: no-filesystem, no-tzdb, has-no-zdump
 // REQUIRES: long_tests
 
 // XFAIL: libcpp-has-no-experimental-tzdb

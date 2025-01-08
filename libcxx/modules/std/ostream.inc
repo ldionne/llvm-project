@@ -8,7 +8,6 @@
 //===----------------------------------------------------------------------===//
 
 export namespace std {
-#if _LIBCPP_HAS_LOCALIZATION
   using std::basic_ostream;
 
   using std::ostream;
@@ -37,6 +36,4 @@ export namespace std {
   using std::vprint_unicode;
 #    endif // _LIBCPP_HAS_UNICODE
 #  endif   // _LIBCPP_STD_VER >= 23
-
-#endif // _LIBCPP_HAS_LOCALIZATION
 } // namespace std

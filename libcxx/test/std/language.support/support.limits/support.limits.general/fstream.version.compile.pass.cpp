@@ -11,8 +11,6 @@
 //
 // clang-format off
 
-// UNSUPPORTED: no-localization
-
 // <fstream>
 
 // Test the feature test macros defined by <fstream>
@@ -56,7 +54,7 @@
 
 #elif TEST_STD_VER > 23
 
-# if !defined(_LIBCPP_VERSION) || (_LIBCPP_HAS_FILESYSTEM && _LIBCPP_HAS_LOCALIZATION)
+# if !defined(_LIBCPP_VERSION) || _LIBCPP_HAS_FILESYSTEM
 #   ifndef __cpp_lib_fstream_native_handle
 #     error "__cpp_lib_fstream_native_handle should be defined in c++26"
 #   endif
@@ -65,7 +63,7 @@
 #   endif
 # else
 #   ifdef __cpp_lib_fstream_native_handle
-#     error "__cpp_lib_fstream_native_handle should not be defined when the requirement '!defined(_LIBCPP_VERSION) || (_LIBCPP_HAS_FILESYSTEM && _LIBCPP_HAS_LOCALIZATION)' is not met!"
+#     error "__cpp_lib_fstream_native_handle should not be defined when the requirement '!defined(_LIBCPP_VERSION) || _LIBCPP_HAS_FILESYSTEM' is not met!"
 #   endif
 # endif
 

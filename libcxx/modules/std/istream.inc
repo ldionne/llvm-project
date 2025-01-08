@@ -8,7 +8,6 @@
 //===----------------------------------------------------------------------===//
 
 export namespace std {
-#if _LIBCPP_HAS_LOCALIZATION
   using std::basic_istream;
 
   using std::istream;
@@ -26,5 +25,4 @@ export namespace std {
   using std::ws;
 
   using std::operator>>;
-#endif // _LIBCPP_HAS_LOCALIZATION
 } // namespace std

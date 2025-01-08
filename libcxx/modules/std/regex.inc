@@ -8,7 +8,6 @@
 //===----------------------------------------------------------------------===//
 
 export namespace std {
-#if _LIBCPP_HAS_LOCALIZATION
   // [re.const], regex constants
   namespace regex_constants {
     using std::regex_constants::error_type;
@@ -113,5 +112,4 @@ export namespace std {
     using std::pmr::wsmatch;
 #  endif
   }    // namespace pmr
-#endif // _LIBCPP_HAS_LOCALIZATION
 } // namespace std

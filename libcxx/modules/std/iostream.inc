@@ -8,7 +8,6 @@
 //===----------------------------------------------------------------------===//
 
 export namespace std {
-#if _LIBCPP_HAS_LOCALIZATION
   using std::cerr;
   using std::cin;
   using std::clog;
@@ -20,5 +19,4 @@ export namespace std {
   using std::wclog;
   using std::wcout;
 #  endif
-#endif // _LIBCPP_HAS_LOCALIZATION
 } // namespace std

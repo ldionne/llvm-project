@@ -21,24 +21,21 @@
 #include <cstddef>
 #include <deque>
 #include <forward_list>
+#include <istream>
 #include <list>
 #include <map>
 #include <memory>
 #include <optional>
+#include <ostream>
+#include <regex>
 #include <set>
-#include <string>
 #include <string_view>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 #include "test_macros.h"
-
-#ifndef TEST_HAS_NO_LOCALIZATION
-#  include <regex>
-#  include <ostream>
-#  include <istream>
-#endif
 
 #ifndef TEST_HAS_NO_FILESYSTEM
 #  include <filesystem>
@@ -146,7 +143,6 @@ static_assert(testIOIterator<std::front_insert_iterator<std::vector<int>>, std::
 static_assert(testIOIterator<std::insert_iterator<std::vector<int>>, std::output_iterator_tag>());
 static_assert(testConst<std::istream_iterator<int, char>, std::input_iterator_tag, int>());
 
-#if !defined(TEST_HAS_NO_LOCALIZATION)
 // We use std::istreambuf_iterator<char>::pointer because it's unspecified, it doesn't have to be char*
 static_assert(test<std::istreambuf_iterator<char>,
                    std::input_iterator_tag,
@@ -159,7 +155,6 @@ static_assert(testIOIterator<std::ostream_iterator<int, char>, std::output_itera
 static_assert(testIOIterator<std::ostreambuf_iterator<int, char>, std::output_iterator_tag>());
 static_assert(testConst<std::cregex_iterator, std::forward_iterator_tag, std::cmatch>());
 static_assert(testConst<std::cregex_token_iterator, std::forward_iterator_tag, std::csub_match>());
-#endif // !TEST_HAS_NO_LOCALIZATION
 
 #ifndef TEST_HAS_NO_FILESYSTEM
 static_assert(test<std::filesystem::directory_iterator, std::input_iterator_tag, std::filesystem::directory_entry,

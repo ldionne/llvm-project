@@ -6,7 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-// UNSUPPORTED: no-localization
 // UNSUPPORTED: c++03, c++11, c++14, c++17
 
 // constexpr explicit basic_istream_view(basic_istream<CharT, Traits>& stream);

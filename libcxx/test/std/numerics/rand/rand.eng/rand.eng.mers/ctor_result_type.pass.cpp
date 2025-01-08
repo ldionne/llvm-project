@@ -17,8 +17,6 @@
 // mersenne_twister_engine() : mersenne_twister_engine(default_seed) {} // C++20
 // explicit mersenne_twister_engine(result_type s);                     // C++20
 
-// Serializing/deserializing the state of the RNG requires iostreams
-// UNSUPPORTED: no-localization
 
 #include <random>
 #include <sstream>

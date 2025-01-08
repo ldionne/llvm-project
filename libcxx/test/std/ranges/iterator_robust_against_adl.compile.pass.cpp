@@ -11,14 +11,12 @@
 // ADL call with nested iterators of views should not look up base's view's
 // namespace
 
+#include <istream>
 #include <ranges>
 #include <tuple>
 
 #include "test_macros.h"
 
-#ifndef TEST_HAS_NO_LOCALIZATION
-#include <istream>
-#endif
 namespace adl {
 
 struct BaseView : std::ranges::view_base {
@@ -58,10 +56,7 @@ concept CanFindADLFunc = requires(std::ranges::iterator_t<View> it) { adl_func(i
 static_assert(!CanFindADLFunc<std::ranges::elements_view<adl::TupleView, 0>>);
 static_assert(!CanFindADLFunc<std::ranges::filter_view<adl::BaseView, adl::Pred>>);
 static_assert(!CanFindADLFunc<std::ranges::iota_view<int, adl::Sentinel>>);
-
-#ifndef TEST_HAS_NO_LOCALIZATION
 static_assert(!CanFindADLFunc<std::ranges::istream_view<adl::Value>>);
-#endif
 
 static_assert(!CanFindADLFunc<std::ranges::join_view<adl::NestedView>>);
 

@@ -13,6 +13,7 @@ set(LIBCXX_SOURCES
   filesystem/filesystem_error.cpp
   filesystem/path_parser.h
   filesystem/path.cpp
+  fstream.cpp
   functional.cpp
   hash.cpp
   include/apple_availability.h
@@ -28,20 +29,28 @@ set(LIBCXX_SOURCES
   include/ryu/digit_table.h
   include/ryu/f2s.h
   include/ryu/ryu.h
+  include/sso_allocator.h
   include/to_chars_floating_point.h
   include/from_chars_floating_point.h
+  ios.cpp
+  ios.instantiations.cpp
+  iostream.cpp
+  locale.cpp
   memory.cpp
   memory_resource.cpp
   new_handler.cpp
   new_helpers.cpp
   optional.cpp
+  ostream.cpp
   print.cpp
   random_shuffle.cpp
+  regex.cpp
   ryu/d2fixed.cpp
   ryu/d2s.cpp
   ryu/f2s.cpp
   stdexcept.cpp
   string.cpp
+  strstream.cpp
   support/runtime/exception_fallback.ipp
   support/runtime/exception_glibcxx.ipp
   support/runtime/exception_libcxxabi.ipp
@@ -78,20 +87,6 @@ endif()
 if (LIBCXX_ENABLE_RANDOM_DEVICE)
   list(APPEND LIBCXX_SOURCES
     random.cpp
-    )
-endif()
-
-if (LIBCXX_ENABLE_LOCALIZATION)
-  list(APPEND LIBCXX_SOURCES
-    fstream.cpp
-    include/sso_allocator.h
-    ios.cpp
-    ios.instantiations.cpp
-    iostream.cpp
-    locale.cpp
-    ostream.cpp
-    regex.cpp
-    strstream.cpp
     )
 endif()
 

@@ -26,12 +26,9 @@
 #include <__type_traits/is_same.h>
 #include <__type_traits/remove_cvref.h>
 #include <__utility/forward.h>
+#include <locale>
+#include <sstream>
 #include <tuple>
-
-#if _LIBCPP_HAS_LOCALIZATION
-#  include <locale>
-#  include <sstream>
-#endif
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
 #  pragma GCC system_header
@@ -124,7 +121,6 @@ struct _LIBCPP_TEMPLATE_VIS hash<__thread_id> : public __unary_function<__thread
   }
 };
 
-#  if _LIBCPP_HAS_LOCALIZATION
 template <class _CharT, class _Traits>
 _LIBCPP_HIDE_FROM_ABI basic_ostream<_CharT, _Traits>&
 operator<<(basic_ostream<_CharT, _Traits>& __os, __thread_id __id) {
@@ -149,7 +145,6 @@ operator<<(basic_ostream<_CharT, _Traits>& __os, __thread_id __id) {
   __sstr << __id.__id_;
   return __os << __sstr.str();
 }
-#  endif // _LIBCPP_HAS_LOCALIZATION
 
 class _LIBCPP_EXPORTED_FROM_ABI thread {
   __libcpp_thread_t __t_;

@@ -8,8 +8,6 @@
 
 // UNSUPPORTED: c++03
 
-// UNSUPPORTED: no-localization
-
 // check that <regex> functions are marked [[nodiscard]]
 
 #include <regex>
