@@ -133,7 +133,11 @@
 `__config_site` header, please make sure your installation of libc++ is not broken.
 #    endif
 
-#    define _LIBCPP_HARDENING_MODE _LIBCPP_HARDENING_MODE_DEFAULT
+#    if !defined(__OPTIMIZE__) && _LIBCPP_HARDENING_MODE_DEFAULT == _LIBCPP_HARDENING_MODE_NONE
+#      define _LIBCPP_HARDENING_MODE _LIBCPP_HARDENING_MODE_FAST
+#    else
+#      define _LIBCPP_HARDENING_MODE _LIBCPP_HARDENING_MODE_DEFAULT
+#    endif
 #  endif
 
 #  if _LIBCPP_HARDENING_MODE != _LIBCPP_HARDENING_MODE_NONE &&                                                         \

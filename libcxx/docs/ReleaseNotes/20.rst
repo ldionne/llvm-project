@@ -106,6 +106,10 @@ Improvements and New Features
   std::errc::not_a_directory``, or use ``err.default_error_condition()`` to map to an ``error_condition``, and then test
   its ``value()`` and ``category()``.
 
+- The standard library hardening mode is now set to ``fast`` by default in translation units that do not enable
+  compiler optimziations. The hardening mode can still be controlled explicitly by defining ``_LIBCPP_HARDENING_MODE``
+  to another value.
+
 Deprecations and Removals
 -------------------------
 
