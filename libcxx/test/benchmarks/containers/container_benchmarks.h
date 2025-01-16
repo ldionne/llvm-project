@@ -76,7 +76,7 @@ void BM_ctor_iter_iter(benchmark::State& st, Generator gen) {
   }
 }
 
-#if TEST_STD_VER >= 23
+#if TEST_STD_VER >= 23 && defined(__cpp_lib_containers_ranges)
 template <class Container, class Generator>
 void BM_ctor_from_range(benchmark::State& st, Generator gen) {
   using ValueType = typename Container::value_type;
@@ -380,7 +380,7 @@ void sequence_container_benchmarks(std::string container) {
     benchmark::RegisterBenchmark(container + "::ctor(Iterator, Iterator)" + tostr(gen), [=](auto& st) {
       BM_ctor_iter_iter<Container>(st, gen);
     })->Arg(1024);
-#if TEST_STD_VER >= 23
+#if TEST_STD_VER >= 23 && defined(__cpp_lib_containers_ranges)
   for (auto gen : generators)
     benchmark::RegisterBenchmark(container + "::ctor(Range)" + tostr(gen), [=](auto& st) {
       BM_ctor_from_range<Container>(st, gen);
