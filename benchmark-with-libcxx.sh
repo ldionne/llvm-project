@@ -16,14 +16,17 @@ ${CXX} --version
 version=${1}
 
 BUILD_DIR="${UMBRELLA_ROOT}/build/${version}"
-rm -rf "${BUILD_DIR}"
-mkdir -p "${BUILD_DIR}"
+INSTALL_DIR="${UMBRELLA_ROOT}/install/${version}"
+rm -rf "${BUILD_DIR}" "${INSTALL_DIR}"
+mkdir -p "${BUILD_DIR}" "${INSTALL_DIR}"
 
 # Prepare the test suite
 cmake -S "${UMBRELLA_ROOT}/runtimes" -B "${BUILD_DIR}" -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo    \
+        -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"                                                     \
         -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi"                                                   \
         -DLIBCXXABI_USE_LLVM_UNWINDER=OFF
 
+ninja -C "${BUILD_DIR}" install-cxx install-cxxabi
 ninja -C "${BUILD_DIR}" cxx-test-depends
 
 # Run the benchmarks
