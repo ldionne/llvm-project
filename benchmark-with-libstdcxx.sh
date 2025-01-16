@@ -20,14 +20,11 @@ mkdir -p "${BUILD_DIR}"
 cmake -S "${UMBRELLA_ROOT}/runtimes" -B "${BUILD_DIR}" -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo    \
         -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind"                                         \
         -DBENCHMARK_USE_LIBSTDCXX=ON                                                                \
-        -DLIBCXX_TEST_CONFIG=stdlib-libstdc++.cfg.in
-
+        -DLIBCXX_TEST_CONFIG=stdlib-libstdc++.cfg.in                                                \
+        -DLIBCXX_TEST_PARAMS="libstdcxx-install-prefix=/opt/homebrew/Cellar/gcc/14.1.0_1;libstdcxx-version=14;libstdcxx-triple=aarch64-apple-darwin23"
 ninja -C "${BUILD_DIR}" cxx-test-depends
 
 # Run the benchmarks
 ./libcxx/utils/libcxx-lit "${BUILD_DIR}" --show-all -j1 --time-tests                                        \
                                          --param optimization=speed                                         \
-                                         --param libstdcxx-install-prefix=/opt/homebrew/Cellar/gcc/14.1.0_1 \
-                                         --param libstdcxx-version=14                                       \
-                                         --param libstdcxx-triple=aarch64-apple-darwin23                    \
                                          libcxx/test/benchmarks/containers/{vector,deque}.bench.cpp
