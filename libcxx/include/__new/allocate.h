@@ -13,7 +13,7 @@
 #include <__cstddef/max_align_t.h>
 #include <__cstddef/size_t.h>
 #include <__new/align_val_t.h>
-#include <__new/global_new_delete.h> // for _LIBCPP_HAS_SIZED_DEALLOCATION
+#include <__new/global_new_delete.h>
 #include <__type_traits/type_identity.h>
 #include <__utility/element_count.h>
 
@@ -64,7 +64,9 @@ __libcpp_allocate(__element_count __n, size_t __align = _LIBCPP_ALIGNOF(_Tp)) {
   return static_cast<_Tp*>(std::__libcpp_operator_new(__size));
 }
 
-#if _LIBCPP_HAS_SIZED_DEALLOCATION
+// Only use sized deallocation from the Standard library if the language feature was
+// also requested to be enabled to the compiler.
+#if defined(__cpp_sized_deallocation) && __cpp_sized_deallocation >= 201309L
 #  define _LIBCPP_ONLY_IF_SIZED_DEALLOCATION(...) __VA_ARGS__
 #else
 #  define _LIBCPP_ONLY_IF_SIZED_DEALLOCATION(...) /* nothing */

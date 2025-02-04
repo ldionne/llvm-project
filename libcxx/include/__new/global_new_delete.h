@@ -25,12 +25,6 @@
 #  define _THROW_BAD_ALLOC
 #endif
 
-#if _LIBCPP_STD_VER >= 14
-#  define _LIBCPP_HAS_SIZED_DEALLOCATION 1
-#else
-#  define _LIBCPP_HAS_SIZED_DEALLOCATION 0
-#endif
-
 #if defined(_LIBCPP_ABI_VCRUNTIME)
 #  include <new.h>
 #else
@@ -39,7 +33,7 @@
     _LIBCPP_NOALIAS;
 _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete(void* __p) _NOEXCEPT;
 _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete(void* __p, const std::nothrow_t&) _NOEXCEPT;
-#  if _LIBCPP_HAS_SIZED_DEALLOCATION
+#  if _LIBCPP_STD_VER >= 14
 _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete(void* __p, std::size_t __sz) _NOEXCEPT;
 #  endif
 
@@ -48,7 +42,7 @@ _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete(void* __p, std::size_t __sz) _
     _LIBCPP_NOALIAS;
 _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete[](void* __p) _NOEXCEPT;
 _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete[](void* __p, const std::nothrow_t&) _NOEXCEPT;
-#  if _LIBCPP_HAS_SIZED_DEALLOCATION
+#  if _LIBCPP_STD_VER >= 14
 _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete[](void* __p, std::size_t __sz) _NOEXCEPT;
 #  endif
 
@@ -58,7 +52,7 @@ _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete[](void* __p, std::size_t __sz)
 operator new(std::size_t __sz, std::align_val_t, const std::nothrow_t&) _NOEXCEPT _LIBCPP_NOALIAS;
 _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete(void* __p, std::align_val_t) _NOEXCEPT;
 _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete(void* __p, std::align_val_t, const std::nothrow_t&) _NOEXCEPT;
-#    if _LIBCPP_HAS_SIZED_DEALLOCATION
+#    if _LIBCPP_STD_VER >= 14
 _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete(void* __p, std::size_t __sz, std::align_val_t) _NOEXCEPT;
 #    endif
 
@@ -68,7 +62,7 @@ operator new[](std::size_t __sz, std::align_val_t) _THROW_BAD_ALLOC;
 operator new[](std::size_t __sz, std::align_val_t, const std::nothrow_t&) _NOEXCEPT _LIBCPP_NOALIAS;
 _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete[](void* __p, std::align_val_t) _NOEXCEPT;
 _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete[](void* __p, std::align_val_t, const std::nothrow_t&) _NOEXCEPT;
-#    if _LIBCPP_HAS_SIZED_DEALLOCATION
+#    if _LIBCPP_STD_VER >= 14
 _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete[](void* __p, std::size_t __sz, std::align_val_t) _NOEXCEPT;
 #    endif
 #  endif
