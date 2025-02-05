@@ -4,7 +4,7 @@
 lit_config.load_config(config, '@CMAKE_CURRENT_BINARY_DIR@/cmake-bridge.cfg')
 
 config.substitutions.append(('%{flags}',
-    '-pthread' + (' -isysroot {}'.format('@CMAKE_OSX_SYSROOT@') if '@CMAKE_OSX_SYSROOT@' else '')
+    '-pthread' + ' -isysroot /Users/ldionne/Downloads/fake-sdk'
 ))
 config.substitutions.append(('%{compile_flags}',
     '-nostdinc++ -I %{target-include-dir} -I %{include-dir} -I %{libcxx-dir}/test/support'
