@@ -9,15 +9,15 @@ function compare-filter() {
   benchmark="${1}"
   filter="${2}"
   ${MONOREPO}/third-party/benchmark/tools/compare.py --no-color benchmarksfiltered \
-    $(${MONOREPO}/libcxx/utils/libcxx-benchmark-json "${BASELINE}" "${benchmark}") "${filter}" \
-    $(${MONOREPO}/libcxx/utils/libcxx-benchmark-json "${CANDIDATE}" "${benchmark}") "${filter}"
+    "$(${MONOREPO}/libcxx/utils/libcxx-benchmark-json "${BASELINE}" "${benchmark}")" "${filter}" \
+    "$(${MONOREPO}/libcxx/utils/libcxx-benchmark-json "${CANDIDATE}" "${benchmark}")" "${filter}"
 }
 
 function compare() {
   benchmark="${1}"
   ${MONOREPO}/third-party/benchmark/tools/compare.py --no-color benchmarks \
-    $(${MONOREPO}/libcxx/utils/libcxx-benchmark-json "${BASELINE}" "${benchmark}") \
-    $(${MONOREPO}/libcxx/utils/libcxx-benchmark-json "${CANDIDATE}" "${benchmark}")
+    "$(${MONOREPO}/libcxx/utils/libcxx-benchmark-json "${BASELINE}" "${benchmark}")" \
+    "$(${MONOREPO}/libcxx/utils/libcxx-benchmark-json "${CANDIDATE}" "${benchmark}")"
 }
 
 function extract-geomean() {
@@ -31,7 +31,7 @@ function prettify-final() {
 }
 
 function exists-in() {
-  dataset=${1}
+  dataset="${1}"
   benchmark=${2}
   if [[ -f $(${MONOREPO}/libcxx/utils/libcxx-benchmark-json "${dataset}" "${benchmark}") ]]; then
     return 0
@@ -43,7 +43,7 @@ function exists-in() {
 # Analysis of containers
 ########################
 for benchmark in ${MONOREPO}/libcxx/test/benchmarks/containers/**/*.bench.cpp; do
-  if ! exists-in ${BASELINE} ${benchmark} || ! exists-in ${CANDIDATE} ${benchmark}; then
+  if ! exists-in "${BASELINE}" ${benchmark} || ! exists-in "${CANDIDATE}" ${benchmark}; then
     continue
   fi
 
@@ -68,7 +68,7 @@ done
 # Analysis for the legacy algorithm benchmarks
 ##############################################
 for benchmark in libcxx/test/benchmarks/algorithms/*.bench.cpp; do
-  if ! exists-in ${BASELINE} ${benchmark} || ! exists-in ${CANDIDATE} ${benchmark}; then
+  if ! exists-in "${BASELINE}" ${benchmark} || ! exists-in "${CANDIDATE}" ${benchmark}; then
     continue
   fi
   # std::find is handled specially below
@@ -83,7 +83,7 @@ done
 # Analysis for the main vector<int> algorithms (the ones that were re-written recently)
 #######################################################################################
 for benchmark in ${MONOREPO}/libcxx/test/benchmarks/algorithms/{modifying,nonmodifying,partitions}/*.bench.cpp; do
-  if ! exists-in ${BASELINE} ${benchmark} || ! exists-in ${CANDIDATE} ${benchmark}; then
+  if ! exists-in "${BASELINE}" ${benchmark} || ! exists-in "${CANDIDATE}" ${benchmark}; then
     continue
   fi
   algo=$(basename "${benchmark}" | sed s/.bench.cpp//)
@@ -104,7 +104,7 @@ compare-filter "${MONOREPO}/libcxx/test/benchmarks/algorithms/find.bench.cpp" "v
 # Analysis for algorithms with deque special-case (only algorithms that were re-written)
 ########################################################################################
 for benchmark in ${MONOREPO}/libcxx/test/benchmarks/algorithms/{modifying,nonmodifying,partitions}/*.bench.cpp; do
-  if ! exists-in ${BASELINE} ${benchmark} || ! exists-in ${CANDIDATE} ${benchmark}; then
+  if ! exists-in "${BASELINE}" ${benchmark} || ! exists-in "${CANDIDATE}" ${benchmark}; then
     continue
   fi
   algo=$(basename "${benchmark}" | sed s/.bench.cpp//)
