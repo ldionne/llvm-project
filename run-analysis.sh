@@ -46,9 +46,22 @@ for benchmark in ${MONOREPO}/libcxx/test/benchmarks/containers/**/*.bench.cpp; d
   if ! exists-in ${BASELINE} ${benchmark} || ! exists-in ${CANDIDATE} ${benchmark}; then
     continue
   fi
+
+  # std::string handled specially below
+  if [[ "${benchmark}" == */string.bench.cpp ]]; then
+    continue
+  fi
+
   # Discard sizes other than 8192 since they make the data harder to display
   results=$(compare-filter "${benchmark}" "/8192" | grep "vs. /8192" | sed -E 's%(.+/8192])\s+%%')
   echo ${results} | sed -E 's%(.+)\[/8192 vs. /8192][^-+]+([0-9.+-]+).*%\1;\2%' | prettify-final
+done
+
+#########################
+# Analysis of std::string
+#########################
+for f in StringFind StringAssign StringCopy StringMove StringErase StringRelational StringRead; do
+  compare-filter ${MONOREPO}/libcxx/test/benchmarks/containers/string.bench.cpp "${f}" | extract-geomean "${f}"
 done
 
 ##############################################
