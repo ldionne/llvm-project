@@ -381,22 +381,28 @@ protected:
     __check_invariants();
     auto __guard = std::__make_scope_guard([this] { this->__check_invariants(); });
 
-    streamsize __i = 0;
-    while (__i < __n) {
-      if (pptr() >= epptr()) {
+    streamsize __written = 0;
+    while (__written < __n) {
+      streamsize __available = this->epptr() - this->pptr();
+
+      // If we have space available in the internal buffer, copy as many characters
+      // as possible into it.
+      if (__available > 0) {
+        streamsize __chunk_size = std::min(__available, __n - __written);
+        traits_type::copy(this->pptr(), __s, __chunk_size);
+        this->__pbump(__chunk_size);
+        __s += __chunk_size;
+        __written += __chunk_size;
+
+        // Otherwise, overflow by a single character.
+      } else {
         if (overflow(traits_type::to_int_type(*__s)) == traits_type::eof())
           break;
         ++__s;
-        ++__i;
-      } else {
-        streamsize __chunk_size = std::min(epptr() - pptr(), __n - __i);
-        traits_type::copy(pptr(), __s, __chunk_size);
-        __pbump(__chunk_size);
-        __s += __chunk_size;
-        __i += __chunk_size;
+        ++__written;
       }
     }
-    return __i;
+    return __written;
   }
 
   virtual int_type overflow(int_type = traits_type::eof()) { return traits_type::eof(); }
