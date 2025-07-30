@@ -296,4 +296,9 @@ features = [
             """,
         ),
     ),
+
+    Feature(
+        name='disable-typed-cxx-new-delete',
+        actions=[AddCompileFlag('-fno-typed-cxx-new-delete')]
+    ),
 ]
