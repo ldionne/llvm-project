@@ -9,7 +9,10 @@ set(BENCHMARK_COMPILE_FLAGS
     -Wno-unused-command-line-argument
     ${SANITIZER_FLAGS}
     )
-list(APPEND BENCHMARK_COMPILE_FLAGS "-nostdinc++" "-isystem ${LIBSTDCXX_PREFIX}/include/c++/14" "-isystem ${LIBSTDCXX_PREFIX}/include/c++/14/${LIBSTDCXX_TRIPLE}" "-nostdlib++" "-L${LIBSTDCXX_PREFIX}/lib/gcc/14" "-lstdc++")
+list(APPEND BENCHMARK_COMPILE_FLAGS
+  ${CMAKE_CXX_FLAGS}
+  "-nostdinc++" "-isystem ${LIBSTDCXX_PREFIX}/include/c++/14" "-isystem ${LIBSTDCXX_PREFIX}/include/c++/14/${LIBSTDCXX_TRIPLE}"
+  "-nostdlib++" "-L${LIBSTDCXX_PREFIX}/lib/gcc/14" "-lstdc++")
 
 split_list(BENCHMARK_COMPILE_FLAGS)
 
@@ -48,6 +51,7 @@ set(BENCHMARK_COMPILE_FLAGS
     -L${LIBCXX_LIBRARY_DIR}
     -Wl,-rpath,${LIBCXX_LIBRARY_DIR}
     ${SANITIZER_FLAGS}
+    ${CMAKE_CXX_FLAGS}
     )
 if(LLVM_ENABLE_PER_TARGET_RUNTIME_DIR AND NOT APPLE)
   list(APPEND BENCHMARK_COMPILE_FLAGS

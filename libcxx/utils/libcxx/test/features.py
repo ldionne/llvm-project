@@ -669,6 +669,10 @@ DEFAULT_FEATURES += [
             """,
         ),
     ),
+    Feature(
+        name='disable-typed-cxx-new-delete',
+        actions=[AddCompileFlag('-fno-typed-cxx-new-delete')]
+    ),
 ]
 
 # Add features representing the build host platform name.
