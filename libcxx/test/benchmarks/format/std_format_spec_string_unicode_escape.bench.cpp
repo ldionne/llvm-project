@@ -20,7 +20,7 @@
 #  include "make_string.h"
 #  include "test_macros.h"
 
-#if _LIBCPP_HAS_UNICODE
+#if defined(_LIBCPP_HAS_UNICODE) && _LIBCPP_HAS_UNICODE
 
 #  define SV(S) MAKE_STRING_VIEW(CharT, S)
 

@@ -16,7 +16,7 @@
 
 #  define SV(S) MAKE_STRING_VIEW(CharT, S)
 
-#if _LIBCPP_HAS_UNICODE
+#if defined(_LIBCPP_HAS_UNICODE) && _LIBCPP_HAS_UNICODE
 
 // generated with https://generator.lorem-ipsum.info/_latin
 
