@@ -24,11 +24,19 @@ args=(${@})
 case "${VARIANT}" in
 libcxx)
     cmake -S "${UMBRELLA_ROOT}/runtimes" -B "${BUILD_DIR}" -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo    \
-        -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"                                                     \
-        -DCMAKE_CXX_FLAGS='-fno-typed-cxx-new-delete'                                               \
-        -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind"                                         \
+        -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"                                                         \
+        -DCMAKE_CXX_FLAGS='-fno-typed-cxx-new-delete'                                                   \
+        -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind"                                             \
         ${args[@]}
- ;;
+;;
+system-libcxx)
+    cmake -S "${UMBRELLA_ROOT}/runtimes" -B "${BUILD_DIR}" -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo    \
+        -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"                                                         \
+        -DCMAKE_CXX_FLAGS='-fno-typed-cxx-new-delete'                                                   \
+        -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind"                                             \
+        -DLIBCXX_TEST_CONFIG=stdlib-native.cfg.in                                                       \
+        ${args[@]}
+;;
 libstdcxx)
     cmake -S "${UMBRELLA_ROOT}/runtimes" -B "${BUILD_DIR}" -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo    \
             -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind"                                         \
