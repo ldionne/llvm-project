@@ -4,6 +4,7 @@
 for b in libcxx system-libcxx libstdcxx; do
     if [[ -e build/${b} ]]; then
         cmake --build build/${b} --target cxx-test-depends
+        find build/${b}/libcxx/test/benchmarks -name 'benchmark-result.json' | xargs rm
     fi
 done
 
