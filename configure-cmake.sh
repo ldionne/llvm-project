@@ -41,11 +41,12 @@ libstdcxx)
     cmake -S "${UMBRELLA_ROOT}/runtimes" -B "${BUILD_DIR}" -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo    \
             -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind"                                         \
             -DBENCHMARK_USE_LIBSTDCXX=ON                                                                \
-            -DLIBSTDCXX_PREFIX="/opt/homebrew/Cellar/gcc/14.2.0_1"                                      \
+            -DLIBSTDCXX_PREFIX="/opt/homebrew/Cellar/gcc/15.1.0"                                        \
             -DLIBSTDCXX_TRIPLE="aarch64-apple-darwin24"                                                 \
+            -DLIBSTDCXX_VERSION="15"                                                                    \
             -DLIBCXX_TEST_CONFIG=stdlib-libstdc++.cfg.in                                                \
             -DCMAKE_CXX_FLAGS='-fno-typed-cxx-new-delete'                                               \
-            -DLIBCXX_TEST_PARAMS="libstdcxx_install_prefix=/opt/homebrew/Cellar/gcc/14.2.0_1;libstdcxx_version=14;libstdcxx_triple=aarch64-apple-darwin24"
+            -DLIBCXX_TEST_PARAMS="libstdcxx_install_prefix=/opt/homebrew/Cellar/gcc/15.1.0;libstdcxx_version=15;libstdcxx_triple=aarch64-apple-darwin24"
 ;;
 *)
     echo "Unknown configuration ${VARIANT}"

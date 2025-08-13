@@ -11,8 +11,8 @@ set(BENCHMARK_COMPILE_FLAGS
     )
 list(APPEND BENCHMARK_COMPILE_FLAGS
   ${CMAKE_CXX_FLAGS}
-  "-nostdinc++" "-isystem ${LIBSTDCXX_PREFIX}/include/c++/14" "-isystem ${LIBSTDCXX_PREFIX}/include/c++/14/${LIBSTDCXX_TRIPLE}"
-  "-nostdlib++" "-L${LIBSTDCXX_PREFIX}/lib/gcc/14" "-lstdc++")
+  "-nostdinc++" "-isystem ${LIBSTDCXX_PREFIX}/include/c++/${LIBSTDCXX_VERSION}" "-isystem ${LIBSTDCXX_PREFIX}/include/c++/${LIBSTDCXX_VERSION}/${LIBSTDCXX_TRIPLE}"
+  "-nostdlib++" "-L${LIBSTDCXX_PREFIX}/lib/gcc/${LIBSTDCXX_VERSION}" "-lstdc++")
 
 split_list(BENCHMARK_COMPILE_FLAGS)
 
