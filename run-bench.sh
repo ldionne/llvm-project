@@ -11,7 +11,7 @@ done
 # Run the actual benchmarks
 for lib in libcxx system-libcxx libstdcxx; do
     if [[ -e build/${lib} ]]; then
-        ./libcxx/utils/libcxx-lit build/${lib} -sv --show-all --time-tests --param optimization=speed -j1 libcxx/test/benchmarks/algorithms
+        ./libcxx/utils/libcxx-lit build/${lib} -sv --show-all --time-tests --param optimization=speed -j1 libcxx/test/benchmarks/{algorithms,streams,numeric,locale}
         ./libcxx/utils/libcxx-lit build/${lib} -sv --show-all --time-tests --param optimization=speed -j1 libcxx/test/benchmarks/containers/{associative,sequence,string.bench.cpp}
     fi
 done
