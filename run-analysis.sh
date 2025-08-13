@@ -2,7 +2,7 @@
 
 ANALYSIS_DIR="${1}"
 BASELINE="${ANALYSIS_DIR}/libstdcxx"
-CANDIDATE="${ANALYSIS_DIR}/libcxx"
+CANDIDATE="${ANALYSIS_DIR}/system-libcxx"
 MONOREPO="${PWD}"
 
 function compare-filter() {
