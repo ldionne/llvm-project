@@ -1,17 +1,11 @@
 #!/usr/bin/env zsh
 
+BUILD_DIR="${1}"
+
 # Make sure we fail early if something's wrong with the test setup
-for lib in libcxx system-libcxx libstdcxx; do
-    if [[ -e build/${lib} ]]; then
-        cmake --build build/${lib} --target cxx-test-depends
-        find build/${lib}/libcxx/test/benchmarks -name 'benchmark-result.json' | xargs rm
-    fi
-done
+cmake --build ${BUILD_DIR} --target cxx-test-depends
 
 # Run the actual benchmarks
-for lib in libcxx system-libcxx libstdcxx; do
-    if [[ -e build/${lib} ]]; then
-        ./libcxx/utils/libcxx-lit build/${lib} -sv --show-all --time-tests --param optimization=speed -j1 libcxx/test/benchmarks/{algorithms,streams,numeric,locale}
-        ./libcxx/utils/libcxx-lit build/${lib} -sv --show-all --time-tests --param optimization=speed -j1 libcxx/test/benchmarks/containers/{associative,sequence,string.bench.cpp}
-    fi
-done
+./libcxx/utils/libcxx-lit ${BUILD_DIR} -sv --show-all --time-tests --param optimization=speed -j1 libcxx/test/benchmarks/algorithms
+./libcxx/utils/libcxx-lit ${BUILD_DIR} -sv --show-all --time-tests --param optimization=speed -j1 libcxx/test/benchmarks/{streams,numeric,locale}
+./libcxx/utils/libcxx-lit ${BUILD_DIR} -sv --show-all --time-tests --param optimization=speed -j1 libcxx/test/benchmarks/containers/{associative,sequence,string.bench.cpp}

@@ -29,7 +29,7 @@ libcxx)
         -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind"                                             \
         ${args[@]}
 ;;
-system-libcxx)
+system-libcxx*)
     cmake -S "${UMBRELLA_ROOT}/runtimes" -B "${BUILD_DIR}" -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo    \
         -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"                                                         \
         -DCMAKE_CXX_FLAGS='-fno-typed-cxx-new-delete'                                                   \
