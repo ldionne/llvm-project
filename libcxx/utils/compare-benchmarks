@@ -118,6 +118,11 @@ def main(argv):
     parser.add_argument('--subtitle', type=str, required=False,
         help='Optional subtitle to use for the chart. This can be used to help identify the contents of the chart. '
              'This option cannot be used with the plain text output.')
+    parser.add_argument('--summary-report', action='store_true')
+    parser.add_argument('--noise-threshold', type=float, required=False,
+                        help='Noise threshold for summary report. This is a floating point number between 0 and 1 that '
+                             'represents the percentage of difference required between two results in order for them not '
+                             'to be considered "within the noise" of each other.')
     args = parser.parse_args(argv)
 
     # Validate arguments (the values admissible for various arguments depend on other
@@ -169,6 +174,37 @@ def main(argv):
         data = data.sort_values(by=f'{args.metric}_1')
     elif args.sort == 'percent_diff':
         data = data.sort_values(by=f'percent')
+
+    # Produce a summary report with a few KPIs if requested
+    if args.summary_report:
+        if len(lnt_inputs) != 2:
+            raise parser.error("--summary-report requires exactly two benchmark inputs")
+        if args.noise_threshold is None:
+            raise parser.error('--noise-threshold is mandatory with --summary-report')
+
+        noise = args.noise_threshold * 100 # % noise threshold for considering benchmarks to be equivalent
+        TOP_PERFORMER_THRESHOLD = 50 # % difference to be considered a top/worst performer
+        # Drop /0 benchmarks for the purpose of summary reports, they swing too much
+        zero_benchmarks = {b for b in data['benchmark'] if b.endswith('/0')}
+        data = data[~data['benchmark'].isin(zero_benchmarks)]
+
+        neutral = data[data['percent'].abs() <= noise]
+        candidate_slower = data[(data[f'{args.metric}_0'] < data[f'{args.metric}_1']) & (data['percent'].abs() > noise)]
+        candidate_faster = data[(data[f'{args.metric}_0'] > data[f'{args.metric}_1']) & (data['percent'].abs() > noise)]
+        worst_performers = candidate_slower[candidate_slower['percent'].abs() >= TOP_PERFORMER_THRESHOLD]
+        best_performers = candidate_faster[candidate_faster['percent'].abs() >= TOP_PERFORMER_THRESHOLD]
+
+        baseline = args.series_names[0]
+        candidate = args.series_names[1]
+        addendum = f"({noise}% noise threshold, based on {len(data)} benchmarks)"
+        percent = lambda series: f"{100 * len(series) / len(data):2.2f}%"
+
+        print(f"- {percent(candidate_slower)} of benchmarks slower with {candidate} than with {baseline} {addendum}")
+        print(f"- {percent(neutral)} of benchmarks neutral with {candidate} and {baseline} {addendum}")
+        print(f"- {percent(candidate_faster)} of benchmarks faster with {candidate} than with {baseline} {addendum}")
+        print(f"- {percent(worst_performers)} of benchmarks slower with {candidate} than with {baseline} by more than {TOP_PERFORMER_THRESHOLD}% {addendum}")
+        print(f"- {percent(best_performers)} of benchmarks faster with {candidate} than with {baseline} by more than {TOP_PERFORMER_THRESHOLD}% {addendum}")
+        return
 
     if args.format == 'chart':
         figure = create_chart(data, args.metric, subtitle=args.subtitle, series_names=args.series_names)
