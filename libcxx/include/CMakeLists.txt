@@ -515,9 +515,6 @@ set(files
   __locale_dir/check_grouping.h
   __locale_dir/get_c_locale.h
   __locale_dir/locale_base_api.h
-  __locale_dir/locale_base_api/bsd_locale_fallbacks.h
-  __locale_dir/locale_base_api/musl.h
-  __locale_dir/locale_base_api/openbsd.h
   __locale_dir/messages.h
   __locale_dir/money.h
   __locale_dir/num.h
