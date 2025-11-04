@@ -32,6 +32,10 @@ definitions:
       - "**/CMakeError.log"
       - "**/CMakeOutput.log"
 
+notify:
+  - github_check:
+      name: "TEST NAME"
+
 steps:
 - group: ARM
   steps:
