@@ -35,3 +35,4 @@ jobs:
           branch: ${{ github.ref_name }}
           commit: ${{ github.sha }}
           message: "Triggered by GitHub Actions PR against ${{ github.ref_name }}"
+          ignore_pipeline_branch_filter: true # The pipeline is configured with a dummy branch filter, only trigger via this Github Action
