@@ -488,5 +488,16 @@ DEFAULT_PARAMETERS = [
             ],
         ),
     ),
+    Parameter(
+        name="expected_features",
+        type=str,
+        default="",
+        help="Path to a file containing Lit features that must be available in this configuration. "
+        "If provided, the test suite configuration will validate that all listed features are "
+        "present. Additional features beyond those listed are allowed. This is used in CI to "
+        "detect when features silently disappear, which could indicate tests being disabled "
+        "without anyone noticing.",
+        actions=lambda path: [],
+    ),
 ]
 # fmt: on

@@ -1,0 +1,36 @@
+# Golden file for GCC-on-Linux CI builders.
+#
+# This file contains Lit features that must be available in ALL GCC-on-Linux
+# CI configurations. If a feature listed here is not detected, it means the
+# CI configuration has changed unexpectedly and tests may be silently disabled.
+#
+# Only auto-detected features are listed here. Parameter-driven features like
+# std, optimization, stdlib, hardening_mode, etc. are intentionally excluded
+# because those would fail loudly if misconfigured.
+#
+# Builders using this file:
+#   generic-gcc, generic-gcc-cxx11
+#
+# Compiler-version and target-specific features are intentionally excluded.
+GCC-ALWAYS_INLINE-FIXME
+add-latomic-workaround
+buildhost=linux
+can-create-symlinks
+gcc-style-warnings
+has-1024-bit-atomics
+has-64-bit-atomics
+has-fconstexpr-ops-limit
+has-filecheck
+has-no-cxx-module-support
+has-splitfile
+has-unix-headers
+libcpp-has-no-availability-markup
+libcpp-has-thread-api-pthread
+linux
+locale.cs_CZ.ISO8859-2
+locale.en_US.UTF-8
+locale.fr_CA.ISO8859-1
+locale.fr_FR.UTF-8
+locale.ja_JP.UTF-8
+locale.ru_RU.UTF-8
+locale.zh_CN.UTF-8

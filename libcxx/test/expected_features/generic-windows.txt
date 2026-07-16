@@ -1,0 +1,32 @@
+# Golden file for all Windows CI builders (clang-cl and MinGW).
+#
+# This file contains Lit features that must be available in ALL Windows
+# CI configurations. If a feature listed here is not detected, it means the
+# CI configuration has changed unexpectedly and tests may be silently disabled.
+#
+# Only auto-detected features are listed here. Parameter-driven features are
+# intentionally excluded because those would fail loudly if misconfigured.
+#
+# Builders using this file:
+#   windows/clang-cl-dll, windows/clang-cl-static, windows/clang-cl-debug,
+#   windows/clang-cl-static-crt, windows/clang-cl-no-vcruntime,
+#   windows/mingw-dll, windows/mingw-static
+#
+# Compiler-version and target-specific features are intentionally excluded.
+buildhost=windows
+can-create-symlinks
+character-conversion-warnings
+diagnose-if-support
+gcc-style-warnings
+has-64-bit-atomics
+has-fblocks
+has-fconstexpr-steps
+locale.en_US.UTF-8
+locale.fr_CA.ISO8859-1
+locale.fr_FR.UTF-8
+locale.ja_JP.UTF-8
+locale.ru_RU.UTF-8
+locale.zh_CN.UTF-8
+objective-c++
+verify-support
+windows

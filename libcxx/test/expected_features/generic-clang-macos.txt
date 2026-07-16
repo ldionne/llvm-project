@@ -1,0 +1,36 @@
+# Golden file for all Clang-on-macOS CI builders.
+#
+# This file contains Lit features that must be available in ALL Clang-on-macOS
+# CI configurations. If a feature listed here is not detected, it means the
+# CI configuration has changed unexpectedly and tests may be silently disabled.
+#
+# Only auto-detected features are listed here. Parameter-driven features are
+# intentionally excluded because those would fail loudly if misconfigured.
+#
+# Builders using this file:
+#   macos/generic-cxx03, macos/generic-cxx23, macos/generic-modules,
+#   macos/apple-configuration, macos/apple-system, macos/apple-system-hardened
+#
+# Compiler-version and target-specific features are intentionally excluded.
+buildhost=darwin
+can-create-symlinks
+character-conversion-warnings
+darwin
+diagnose-if-support
+gcc-style-warnings
+has-1024-bit-atomics
+has-64-bit-atomics
+has-fblocks
+has-fconstexpr-steps
+has-fobjc-arc
+has-unix-headers
+libcpp-has-thread-api-pthread
+locale.cs_CZ.ISO8859-2
+locale.en_US.UTF-8
+locale.fr_CA.ISO8859-1
+locale.fr_FR.UTF-8
+locale.ja_JP.UTF-8
+locale.ru_RU.UTF-8
+locale.zh_CN.UTF-8
+objective-c++
+verify-support

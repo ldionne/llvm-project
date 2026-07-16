@@ -49,10 +49,12 @@ jobs:
         ]
         cc: [  'clang-23' ]
         cxx: [ 'clang++-23' ]
+        expected_features: [ 'expected_features/generic-clang-linux.txt' ]
         include:
           - config: 'generic-gcc'
             cc: 'gcc-15'
             cxx: 'g++-15'
+            expected_features: 'expected_features/generic-gcc.txt'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -66,6 +68,7 @@ jobs:
         env:
           CC: ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
+          EXPECTED_FEATURES: ${{ matrix.expected_features }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -94,16 +97,20 @@ jobs:
         ]
         cc: [ 'clang-23' ]
         cxx: [ 'clang++-23' ]
+        expected_features: [ 'expected_features/generic-clang-linux.txt' ]
         include:
           - config: 'generic-gcc-cxx11'
             cc: 'gcc-15'
             cxx: 'g++-15'
+            expected_features: 'expected_features/generic-gcc.txt'
           - config: 'generic-cxx26'
             cc: 'clang-22'
             cxx: 'clang++-22'
+            expected_features: 'expected_features/generic-clang-linux.txt'
           - config: 'generic-cxx26'
             cc: 'clang-21'
             cxx: 'clang++-21'
+            expected_features: 'expected_features/generic-clang-linux.txt'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -117,6 +124,7 @@ jobs:
         env:
           CC: ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
+          EXPECTED_FEATURES: ${{ matrix.expected_features }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()  # Upload artifacts even if the build or test suite fails
         with:
@@ -178,6 +186,7 @@ jobs:
         env:
           CC: clang-23
           CXX: clang++-23
+          EXPECTED_FEATURES: expected_features/generic-clang-linux.txt
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -237,6 +246,7 @@ jobs:
         env:
           CC: clang
           CXX: clang++
+          EXPECTED_FEATURES: expected_features/generic-clang-macos.txt
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()  # Upload artifacts even if the build or test suite fails
         with:
@@ -306,3 +316,4 @@ jobs:
         env:
           CC: ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
+          EXPECTED_FEATURES: expected_features/generic-windows.txt

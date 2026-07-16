@@ -1,0 +1,44 @@
+# Golden file for all Clang-on-Linux CI builders.
+#
+# This file contains Lit features that must be available in ALL Clang-on-Linux
+# CI configurations. If a feature listed here is not detected, it means the
+# CI configuration has changed unexpectedly and tests may be silently disabled.
+#
+# Only auto-detected features are listed here. Parameter-driven features like
+# std, optimization, stdlib, hardening_mode, etc. are intentionally excluded
+# because those would fail loudly if misconfigured.
+#
+# Features that are NOT shared by all Clang-on-Linux builders (e.g.
+# libcpp-has-thread-api-pthread is missing from generic-no-threads, and
+# locale.* features are missing from generic-no-localization) are excluded.
+#
+# Builders using this file:
+#   generic-cxx03, generic-cxx11, generic-cxx14, generic-cxx17, generic-cxx20,
+#   generic-cxx23, generic-cxx26, generic-modules, generic-modules-cxx17-lsv,
+#   generic-merged, generic-static, generic-optimized-speed,
+#   generic-no-exceptions, generic-no-experimental, generic-no-filesystem,
+#   generic-no-localization, generic-no-random_device, generic-no-threads,
+#   generic-no-tzdb, generic-no-unicode, generic-no-wide-characters,
+#   generic-no-rtti, generic-hardening-mode-debug,
+#   generic-hardening-mode-extensive, generic-hardening-mode-fast,
+#   generic-asan, generic-tsan, generic-ubsan, generic-msan,
+#   frozen-cxx03-headers, generic-abi-unstable
+#
+# Compiler-version and target-specific features are intentionally excluded.
+add-latomic-workaround
+buildhost=linux
+can-create-symlinks
+character-conversion-warnings
+diagnose-if-support
+gcc-style-warnings
+has-1024-bit-atomics
+has-64-bit-atomics
+has-fblocks
+has-fconstexpr-steps
+has-filecheck
+has-splitfile
+has-unix-headers
+libcpp-has-no-availability-markup
+linux
+objective-c++
+verify-support
