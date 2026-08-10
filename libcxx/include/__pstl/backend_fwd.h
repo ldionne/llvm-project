@@ -52,7 +52,12 @@ struct __libdispatch_backend_tag;
 struct __serial_backend_tag;
 struct __std_thread_backend_tag;
 
-#  if defined(_LIBCPP_PSTL_BACKEND_SERIAL)
+// The parallel backends are still experimental, so unless the user opted into experimental
+// library features we run everything serially. Note that this means the selected backend is
+// a property of the translation unit, not of the library that was built -- which is why
+// _LIBCPP_EXPERIMENTAL_SIG is part of _LIBCPP_ODR_SIGNATURE, so that the frontend algorithms
+// in <__algorithm/pstl.h> and friends don't get merged across TUs that disagree.
+#  if !_LIBCPP_HAS_EXPERIMENTAL_PSTL_PARALLEL_BACKEND || defined(_LIBCPP_PSTL_BACKEND_SERIAL)
 using __current_configuration _LIBCPP_NODEBUG = __backend_configuration<__serial_backend_tag, __default_backend_tag>;
 #  elif defined(_LIBCPP_PSTL_BACKEND_STD_THREAD)
 using __current_configuration _LIBCPP_NODEBUG =

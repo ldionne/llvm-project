@@ -20,8 +20,8 @@
 #  error "-fexperimental-library should enable optional::iterator"
 #endif
 
-#if !_LIBCPP_HAS_EXPERIMENTAL_PSTL
-#  error "-fexperimental-library should enable the PSTL"
+#if !_LIBCPP_HAS_EXPERIMENTAL_PSTL_PARALLEL_BACKEND
+#  error "-fexperimental-library should enable the PSTL parallel backends"
 #endif
 
 #if !_LIBCPP_HAS_EXPERIMENTAL_TZDB

@@ -10,6 +10,10 @@
 
 // REQUIRES: libcpp-pstl-backend-libdispatch
 
+// The libdispatch backend is only selected when experimental library features are enabled,
+// and __partition_chunks is only provided by the experimental library.
+// REQUIRES: c++experimental
+
 // __chunk_partitions __partition_chunks(ptrdiff_t);
 
 #include <__pstl/backends/libdispatch.h>

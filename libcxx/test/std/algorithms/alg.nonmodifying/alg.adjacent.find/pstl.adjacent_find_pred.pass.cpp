@@ -8,8 +8,6 @@
 
 // REQUIRES: std-at-least-c++17
 
-// UNSUPPORTED: libcpp-has-no-incomplete-pstl
-
 // template<class ExecutionPolicy, class ForwardIterator, class BinaryPredicate>
 // ForwardIterator adjacent_find(ExecutionPolicy&& exec,
 //                               ForwardIterator first, ForwardIterator last,

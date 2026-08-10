@@ -51,6 +51,12 @@ Implemented Papers
 Improvements and New Features
 -----------------------------
 
+- The parallel algorithms (``<execution>`` and the algorithm overloads taking an execution policy) are no
+  longer experimental and are now provided without passing ``-fexperimental-library``. Note that they run
+  serially by default, and that not all of the required overloads are implemented yet, so neither
+  ``__cpp_lib_execution`` nor ``__cpp_lib_parallel_algorithm`` is defined. See
+  :ref:`here <parallel-algorithms>` for details.
+
 Deprecations and Removals
 -------------------------
 
@@ -67,6 +73,11 @@ Potentially breaking changes
 - Unused objects of containers are now diagnosed. To ease the transition ``_LIBCPP_DISABLE_UNUSED_STRUCT_WARNINGS`` can
   be defined as an escape hatch. This escape hatch will be removed in LLVM 24.
 
+- The parallel algorithms now run serially unless a translation unit is compiled with ``-fexperimental-library``,
+  since the parallel backends are still experimental. Previously, the backend selected by the vendor via
+  ``LIBCXX_PSTL_BACKEND`` was always used. Vendors who were shipping the ``libdispatch`` backend and users who
+  were relying on ``-fexperimental-library`` to get the parallel algorithms are unaffected.
+
 Announcements About Future Releases
 -----------------------------------
 
@@ -81,5 +92,15 @@ Announcements About Future Releases
 ABI Affecting Changes
 ---------------------
 
+- Whether experimental library features are enabled is now part of libc++'s ABI tags, so translation units
+  compiled with and without ``-fexperimental-library`` no longer share instantiations of functions marked
+  ``_LIBCPP_HIDE_FROM_ABI``. This is required because experimental features can now change the body of a
+  function that also exists when they are disabled, as the parallel algorithms' backend selection does. No
+  symbol exported from the libc++ shared library is affected.
+
 Build System Changes
 --------------------
+
+- ``LIBCXX_PSTL_BACKEND`` now defaults to ``serial`` regardless of whether ``LIBCXX_ENABLE_THREADS`` is
+  enabled, and the backend it selects is only used in translation units that enable experimental library
+  features.

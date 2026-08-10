@@ -18,7 +18,7 @@
 _LIBCPP_PUSH_MACROS
 #include <__undef_macros>
 
-#if _LIBCPP_HAS_EXPERIMENTAL_PSTL && _LIBCPP_STD_VER >= 17
+#if _LIBCPP_STD_VER >= 17
 
 #  include <__functional/operations.h>
 #  include <__iterator/cpp17_iterator_concepts.h>
@@ -948,7 +948,7 @@ is_sorted_until(_ExecutionPolicy&& __policy, _ForwardIterator __first, _ForwardI
 
 _LIBCPP_END_NAMESPACE_STD
 
-#endif // _LIBCPP_HAS_EXPERIMENTAL_PSTL && _LIBCPP_STD_VER >= 17
+#endif // _LIBCPP_STD_VER >= 17
 
 _LIBCPP_POP_MACROS
 

@@ -8,8 +8,6 @@
 
 // UNSUPPORTED: c++03, c++11, c++14
 
-// UNSUPPORTED: libcpp-has-no-incomplete-pstl
-
 // template<class ExecutionPolicy, class ForwardIterator, class Size, class Generator>
 //   ForwardIterator generate_n(ExecutionPolicy&& exec,
 //                              ForwardIterator first, Size n, Generator gen);

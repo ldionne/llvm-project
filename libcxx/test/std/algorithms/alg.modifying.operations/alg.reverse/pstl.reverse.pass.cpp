@@ -8,8 +8,6 @@
 
 // REQUIRES: std-at-least-c++17
 
-// UNSUPPORTED: libcpp-has-no-incomplete-pstl
-
 // template <class ExecutionPolicy,
 //           class BidirectionalIterator>
 //   void reverse(ExecutionPolicy&& exec,

@@ -68,9 +68,12 @@ access to experimental library features.
 The following features are currently considered experimental and are only provided
 when ``-fexperimental-library`` is passed:
 
-* The parallel algorithms library (``<execution>`` and the associated algorithms)
 * ``std::chrono::tzdb`` and related time zone functionality
 * ``<syncstream>``
+* The parallel backends of the parallel algorithms library (see
+  :ref:`here <parallel-algorithms>`). Note that the parallel algorithms
+  themselves are *not* experimental -- only the backends that run work
+  concurrently are.
 
 Additionally, assertion semantics are an experimental feature that can be used
 to customize the behavior of Hardening (see :ref:`here <assertion-semantics>`).
@@ -85,6 +88,56 @@ not a standard feature.
     * When the standardized version of an experimental feature is implemented,
       the experimental feature is removed two releases after the non-experimental
       version has shipped. The full policy is explained :ref:`here <experimental features>`.
+
+
+.. _parallel-algorithms:
+
+Parallel algorithms
+===================
+
+``<execution>`` and the algorithm overloads taking an execution policy are provided
+unconditionally. However, there are two important caveats.
+
+**The algorithms run serially by default.** Passing ``std::execution::par`` or
+``std::execution::par_unseq`` grants the implementation permission to parallelize,
+it does not require it, so running serially is conforming. libc++ only uses a
+parallel backend when both of the following hold:
+
+1. The vendor selected one at build time via the ``LIBCXX_PSTL_BACKEND`` CMake
+   option (``serial``, ``std_thread`` or ``libdispatch``), and
+2. the translation unit was compiled with ``-fexperimental-library``, since the
+   parallel backends are still experimental.
+
+Otherwise the algorithms execute serially. Note that the ``std_thread`` backend
+currently runs everything serially as well; it exists for testing purposes and is
+not meant for production use.
+
+Because the backend is selected per translation unit rather than per library, the
+selection participates in libc++'s ABI tags. Translation units compiled with and
+without ``-fexperimental-library`` therefore do not share the parallel algorithm
+instantiations, which is what keeps the two from being merged by the linker.
+
+**Not all overloads are provided yet.** The parallel overloads of the following
+algorithms are not implemented, and using them will fail to compile with a normal
+overload resolution error:
+
+* ``<algorithm>``: ``find_end``, ``search``, ``search_n``, ``copy_if``,
+  ``swap_ranges``, ``remove``, ``remove_if``, ``remove_copy``, ``remove_copy_if``,
+  ``unique``, ``unique_copy``, ``rotate``, ``shift_left``, ``shift_right``,
+  ``partition``, ``stable_partition``, ``partition_copy``, ``partial_sort``,
+  ``partial_sort_copy``, ``nth_element``, ``inplace_merge``, ``includes``,
+  ``set_union``, ``set_intersection``, ``set_difference``,
+  ``set_symmetric_difference``, ``is_heap``, ``is_heap_until``, ``min_element``,
+  ``max_element``, ``minmax_element``
+* ``<numeric>``: ``exclusive_scan``, ``inclusive_scan``,
+  ``transform_exclusive_scan``, ``transform_inclusive_scan``
+* ``<memory>``: ``uninitialized_default_construct``,
+  ``uninitialized_value_construct``, ``uninitialized_copy``,
+  ``uninitialized_move``, ``uninitialized_fill`` and their ``_n`` variants
+
+For this reason, neither ``__cpp_lib_parallel_algorithm`` nor
+``__cpp_lib_execution`` is defined. Progress on the remaining overloads is tracked
+`here <https://github.com/llvm/llvm-project/issues/99938>`_.
 
 
 .. _libcxx-configuration-macros:

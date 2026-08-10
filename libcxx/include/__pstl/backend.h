@@ -21,7 +21,9 @@ _LIBCPP_PUSH_MACROS
 
 #if _LIBCPP_STD_VER >= 17
 
-#  if defined(_LIBCPP_PSTL_BACKEND_SERIAL)
+// The conditions below must be kept in sync with the selection of __current_configuration
+// in <__pstl/backend_fwd.h>.
+#  if !_LIBCPP_HAS_EXPERIMENTAL_PSTL_PARALLEL_BACKEND || defined(_LIBCPP_PSTL_BACKEND_SERIAL)
 #    include <__pstl/backends/default.h>
 #    include <__pstl/backends/serial.h>
 #  elif defined(_LIBCPP_PSTL_BACKEND_STD_THREAD)

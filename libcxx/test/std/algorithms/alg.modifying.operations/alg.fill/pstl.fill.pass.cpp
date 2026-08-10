@@ -10,8 +10,6 @@
 
 // UNSUPPORTED: c++03, c++11, c++14
 
-// UNSUPPORTED: libcpp-has-no-incomplete-pstl
-
 // template<class ExecutionPolicy, class ForwardIterator, class T>
 //   void fill(ExecutionPolicy&& exec,
 //             ForwardIterator first, ForwardIterator last, const T& value);

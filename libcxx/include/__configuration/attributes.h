@@ -10,6 +10,7 @@
 #define _LIBCPP___CONFIGURATION_ATTRIBUTES_H
 
 #include <__config_site>
+#include <__configuration/experimental.h>
 #include <__configuration/hardening.h>
 #include <__configuration/language.h>
 #include <__configuration/utility.h>
@@ -150,9 +151,22 @@
 #  define _LIBCPP_EXCEPTIONS_SIG e
 #endif
 
+// Experimental library features are allowed to change the body of a function that also exists
+// when they are disabled -- the PSTL's parallel backend selection does exactly that. Encoding
+// whether they are enabled keeps such functions from being merged across translation units
+// compiled with and without -fexperimental-library.
+#if _LIBCPP_HAS_EXPERIMENTAL_LIBRARY
+#  define _LIBCPP_EXPERIMENTAL_SIG x // e[x]perimental
+#else
+#  define _LIBCPP_EXPERIMENTAL_SIG s // [s]table
+#endif
+
 #define _LIBCPP_ODR_SIGNATURE                                                                                          \
   _LIBCPP_CONCAT(                                                                                                      \
-      _LIBCPP_CONCAT(_LIBCPP_CONCAT(_LIBCPP_HARDENING_SIG, _LIBCPP_ASSERTION_SEMANTIC_SIG), _LIBCPP_EXCEPTIONS_SIG),   \
+      _LIBCPP_CONCAT(                                                                                                  \
+          _LIBCPP_CONCAT(_LIBCPP_CONCAT(_LIBCPP_HARDENING_SIG, _LIBCPP_ASSERTION_SEMANTIC_SIG),                        \
+                         _LIBCPP_EXCEPTIONS_SIG),                                                                      \
+          _LIBCPP_EXPERIMENTAL_SIG),                                                                                   \
       _LIBCPP_VERSION)
 
 // This macro marks a symbol as being hidden from libc++'s ABI. This is achieved
