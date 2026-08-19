@@ -83,6 +83,45 @@ This will run the benchmarks (using the test suite at the specified `SHA1`) agai
 as-of the specified `SHA2`, and produce a LNT-ready JSON report. The results can then be
 submitted to a LNT instance if desired.
 
+## Finding when a benchmark changed
+
+The coarse-grained data gathered above tells us that a benchmark changed somewhere between
+two anchor commits, but not where. `detect-changepoints` is what turns that data into such
+an observation: given the history of a single benchmark, it reports the points at which it
+changed level, which is the input to deciding where finer-grained data is worth gathering.
+
+It knows nothing about LNT and reads its series as CSV, so the data can come from an LNT
+instance, from a local experiment, or from anywhere else. Only a `value` column is required;
+`commit` labels the points and groups the measurements taken at the same one, and `ordinal`
+orders them:
+
+```
+# Extract the history of one benchmark from a LNT instance.
+curl -s -X POST "${LNT_URL}/api/v5/libcxx/query" -H 'Content-Type: application/json'    \
+     -d "{\"machine\": \"${MACHINE}\", \"metric\": \"execution_time\",                  \
+          \"test\": [\"${BENCHMARK}\"], \"limit\": 10000}"                              \
+  | jq -r '"commit,ordinal,value", (.items[] | "\(.commit),\(.ordinal),\(.value)")'     \
+  > series.csv
+
+detect-changepoints --input series.csv --aggregate median --min-change 0.02
+```
+
+A commit that was benchmarked several times appears as several rows, and `--aggregate` says
+how to reduce them to the one value that stands for that commit. It has no default and is
+required whenever the input holds repeats, because the alternative of treating them as
+independent observations is wrong in a way that is invisible in the output: repeated runs of
+one commit share a binary, so they resemble each other more than they resemble the runs of
+the commit next door, and the permutation test reads that resemblance as structure. Left
+alone it reports several times more changes than are really there.
+
+A change is located between two consecutive *measured* commits, so with coarse-grained data
+that interval spans everything that landed in between. Narrowing it down means benchmarking
+commits inside the interval, which is what `plan-benchmarks` and `dispatch-benchmarks` above
+are for.
+
+See `detect-changepoints --help` for how the method works and for what the reported p-values
+do and do not mean.
+
 ## Setting up a local LNT instance
 
 ```

@@ -1,0 +1,611 @@
+#!/usr/bin/env python3
+# ===----------------------------------------------------------------------===##
+#
+# Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+# See https://llvm.org/LICENSE.txt for license information.
+# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+#
+# ===----------------------------------------------------------------------===##
+
+from typing import Dict, List, NamedTuple, Optional, Sequence, Tuple
+import argparse
+import common
+import csv
+import json
+import logging
+import math
+import numpy
+import pathlib
+import statistics
+import sys
+import tabulate
+
+
+# Scaling that turns a robust median absolute deviation into an estimate of the standard
+# deviation of a normal distribution.
+MAD_TO_SIGMA = 1.4826
+
+
+# How the repeated measurements of one point may be combined into the single value that
+# stands for it. The median is the one to reach for unless there is a reason not to; the
+# minimum suits a benchmark whose noise only ever makes it look slower.
+AGGREGATORS = {
+    'median': statistics.median,
+    'mean': statistics.fmean,
+    'min': min,
+}
+
+
+class Point(NamedTuple):
+    """
+    One position of the series: a label, its place in the order, and every sample
+    measured there.
+
+    A point is normally a commit, and its samples are the individual benchmark runs
+    performed at that commit. The ordinal exists only to put the points in order while
+    the series is being read, and is not used afterwards.
+    """
+    label: str
+    ordinal: Optional[int]
+    samples: List[float]
+
+
+class Split(NamedTuple):
+    """A candidate division of a segment: where it falls, and how good it is."""
+    point: int
+    statistic: float
+
+
+class Candidate(NamedTuple):
+    """A split that survived its permutation test."""
+    point: int
+    statistic: float
+    p_value: float
+
+
+class Changepoint(NamedTuple):
+    """A detected change, located between two consecutive points of the series."""
+    point: int          # index of the first point after the change
+    before_label: str   # last point before the change
+    after_label: str    # first point after the change
+    before: float       # representative value of the segment before the change
+    after: float        # representative value of the segment after the change
+    change: float       # relative change, as a fraction of the value before
+    p_value: float
+    statistic: float
+
+
+class Settings(NamedTuple):
+    """The parameters the detection runs with, fixed for the whole series."""
+    min_points: int
+    p_value: float
+    permutations: int
+    min_change: float
+    log: bool
+    aggregate: str
+
+
+class HelpFormatter(argparse.ArgumentDefaultsHelpFormatter,
+                    argparse.RawDescriptionHelpFormatter):
+    """Show defaults, but keep the paragraphs of the description intact."""
+
+
+def read_series(stream) -> List[Point]:
+    """
+    Read a series from a CSV stream, grouping the samples of each point together.
+
+    Only a `value` column is required. A `commit` column labels the points and gathers
+    the rows that belong to the same one, and an `ordinal` column places them in order.
+    Without an `ordinal`, the order of the rows is the order of the series; without a
+    `commit`, every row is a point of its own.
+    """
+    reader = csv.DictReader(stream)
+    if reader.fieldnames is None:
+        raise ValueError('the input is empty: expected a CSV header with at least a `value` column')
+    fields = [field.strip() for field in reader.fieldnames]
+    reader.fieldnames = fields
+    if 'value' not in fields:
+        raise ValueError(f'the input has no `value` column (found: {", ".join(fields) or "nothing"})')
+    (has_ordinal, has_test) = ('ordinal' in fields, 'test' in fields)
+
+    points: Dict[str, Point] = {} # in order of first appearance
+    tests = set()
+    for (number, row) in enumerate(reader, start=2): # line 1 is the header
+        try:
+            value = float(row['value'])
+        except (KeyError, TypeError, ValueError):
+            raise ValueError(f'line {number}: `value` is not a number: {row.get("value")!r}')
+        if not math.isfinite(value):
+            raise ValueError(f'line {number}: `value` is not finite: {row["value"]!r}')
+
+        ordinal = None
+        if has_ordinal:
+            raw = (row.get('ordinal') or '').strip()
+            if not raw:
+                raise ValueError(f'line {number}: `ordinal` is empty. It must be given for every '
+                                 f'row or for none, since a partial order cannot be used to sort '
+                                 f'the series.')
+            try:
+                ordinal = int(raw)
+            except ValueError:
+                raise ValueError(f'line {number}: `ordinal` is not an integer: {raw!r}')
+
+        if has_test:
+            tests.add((row.get('test') or '').strip())
+
+        # Rows that carry no label are each a point of their own: there is nothing to group
+        # them by, so the line they came from is the only identity they can be given.
+        label = (row.get('commit') or '').strip() or f'line {number}'
+        if label in points:
+            existing = points[label]
+            if existing.ordinal != ordinal:
+                raise ValueError(f'line {number}: {label} appears with two different ordinals '
+                                 f'({existing.ordinal} and {ordinal})')
+            existing.samples.append(value)
+        else:
+            points[label] = Point(label=label, ordinal=ordinal, samples=[value])
+
+    # A `test` column is what an export holding several benchmarks looks like. Analyzing
+    # them as one series would silently interleave them and report changes that are really
+    # just the input alternating between benchmarks, so insist on being given only one.
+    if len(tests) > 1:
+        listed = ', '.join(sorted(tests)[:3])
+        raise ValueError(f'the input holds {len(tests)} different tests ({listed}, ...), but this '
+                         f'tool analyzes a single series. Filter the input down to one test.')
+
+    series = list(points.values())
+    # Sorting is stable, so points sharing an ordinal keep the order they were written in.
+    if has_ordinal:
+        series.sort(key=lambda point: point.ordinal)
+    return series
+
+
+def samples_of(points: Sequence[Point]) -> List[float]:
+    """Every sample measured at any of `points`."""
+    return [sample for point in points for sample in point.samples]
+
+
+def flatten(series: Sequence[Point], aggregate: str) -> Tuple[numpy.ndarray, numpy.ndarray]:
+    """
+    Return one value per point, and where each point starts in that array.
+
+    The repeated measurements of a point are combined into the single value that stands
+    for it, using the named method. They are deliberately not carried into the analysis as
+    separate observations: repeated runs of one commit share a binary, so they resemble
+    each other more than they resemble the runs of the commit next door, and the
+    permutation test in `significance` would read that resemblance as structure and report
+    changes that are not there.
+
+    The returned `starts` has one more element than there are points, so the values of
+    point `i` are `values[starts[i]:starts[i + 1]]`.
+
+    The samples of a point are combined in sorted order so that the result is reproducible
+    to the last bit, rather than merely to within a rounding error.
+    """
+    combine = AGGREGATORS[aggregate]
+    values = numpy.array([combine(sorted(point.samples)) for point in series], dtype=float)
+    # One value per point, so a point begins wherever its index says it does.
+    starts = numpy.arange(len(series) + 1)
+    return (values, starts)
+
+
+def cumulative_distances(values: numpy.ndarray, starts: numpy.ndarray) -> numpy.ndarray:
+    """
+    Return the prefix sums of the pairwise distance matrix of `values`, per point.
+
+    Element [i, j] holds the sum of the distances between the values of the first `i`
+    points and the values of the first `j` points, which makes the sum over any
+    rectangular block of points computable with four lookups. The scan for a changepoint
+    needs exactly such block sums for every candidate location, and getting them in
+    constant time is what keeps the permutation test affordable.
+    """
+    # The energy statistic is consistent for any exponent in (0, 2) applied to the
+    # distances. One is the usual choice and the one this tool is calibrated against.
+    distances = numpy.abs(values[:, None] - values[None, :])
+    grouped = numpy.add.reduceat(numpy.add.reduceat(distances, starts[:-1], axis=0),
+                                 starts[:-1], axis=1)
+    prefix = numpy.zeros((len(grouped) + 1, len(grouped) + 1))
+    prefix[1:, 1:] = grouped.cumsum(axis=0).cumsum(axis=1)
+    return prefix
+
+
+def block(prefix: numpy.ndarray, row_begin, row_end, column_begin, column_end):
+    """Sum the distance matrix over the given half-open ranges of points."""
+    return (prefix[row_end, column_end] - prefix[row_begin, column_end]
+            - prefix[row_end, column_begin] + prefix[row_begin, column_begin])
+
+
+def energy_statistic(prefix: numpy.ndarray, starts: numpy.ndarray, first: int, last: int,
+                     splits: numpy.ndarray) -> numpy.ndarray:
+    """
+    Return the scaled energy statistic for dividing the points [first, last) at each of
+    `splits`.
+
+    This is the two-sample energy distance: how far apart the two candidate segments are
+    on average, minus how spread out each of them is internally. It is large only when the
+    segments differ by more than their own dispersion explains, and it makes no assumption
+    about the shape of the distributions, which matters for benchmark data.
+
+    The result is scaled by `n * m / (n + m)` so that the statistic of an unbalanced split
+    is comparable to that of a balanced one. Without it, splits near the middle of a
+    segment would win on size alone.
+    """
+    # Everything here is counted in points, each of which contributes the one value that
+    # `flatten` combined its measurements into.
+    before = starts[splits] - starts[first]
+    after = starts[last] - starts[splits]
+    # The two within-segment blocks count every unordered pair twice, so pairing them with
+    # the doubled pair count `n * (n - 1)` is what averages over each pair exactly once.
+    across = block(prefix, first, splits, splits, last)
+    within_before = block(prefix, first, splits, first, splits)
+    within_after = block(prefix, splits, last, splits, last)
+    distance = (2.0 * across / (before * after)
+                - within_before / (before * (before - 1))
+                - within_after / (after * (after - 1)))
+    return distance * before * after / (before + after)
+
+
+def best_split(prefix: numpy.ndarray, starts: numpy.ndarray, first: int, last: int,
+               min_points: int) -> Optional[Split]:
+    """
+    Return the most likely changepoint in the points [first, last), or None when the
+    segment cannot be divided.
+
+    Candidate locations are the boundaries between points, never inside one: a point holds
+    a single value, and the repeated measurements it was combined from are measurements of
+    the same thing, so a change cannot happen partway through them.
+    """
+    candidates = numpy.arange(first + min_points, last - min_points + 1)
+    # The statistic needs at least two points on each side to have a within-segment
+    # dispersion to speak of. This also rejects a segment with no candidate at all.
+    usable = ((starts[candidates] - starts[first] >= 2)
+              & (starts[last] - starts[candidates] >= 2))
+    if not usable.any():
+        return None
+    candidates = candidates[usable]
+    energies = energy_statistic(prefix, starts, first, last, candidates)
+    best = int(numpy.argmax(energies))
+    return Split(point=int(candidates[best]), statistic=float(energies[best]))
+
+
+def significance(values: numpy.ndarray, starts: numpy.ndarray, first: int, last: int,
+                 min_points: int, observed: float, permutations: int,
+                 rng: numpy.random.Generator) -> float:
+    """
+    Return the permutation p-value of a candidate changepoint found in [first, last).
+
+    Under the hypothesis that nothing changes within the segment, the points are
+    exchangeable, so reordering them at random is as likely to produce the data as the
+    order we observed. Shuffling many times and counting how often chance alone explains
+    a split at least as good as the observed one is therefore a direct estimate of how
+    surprising that split is. This is what replaces the penalty parameter that most
+    changepoint methods need to be told.
+
+    It is the points that are exchangeable and not the measurements behind them, which is
+    why `flatten` combines each point down to one value before any of this runs.
+
+    The count is offset by one on both sides, which keeps the estimate unbiased and
+    avoids reporting a p-value of exactly zero, which no finite number of permutations
+    can justify.
+    """
+    (begin, end) = (starts[first], starts[last])
+    # The point boundaries stay where they are: we shuffle the values across positions,
+    # not the positions themselves.
+    boundaries = starts[first:last + 1] - begin
+    values_of_segment = values[begin:end]
+    atypical = 0
+    for _ in range(permutations):
+        prefix = cumulative_distances(rng.permutation(values_of_segment), boundaries)
+        split = best_split(prefix, boundaries, 0, last - first, min_points)
+        if split is not None and split.statistic >= observed:
+            atypical += 1
+    return (atypical + 1) / (permutations + 1)
+
+
+def detect(values: numpy.ndarray, starts: numpy.ndarray, labels: Sequence[str],
+           settings: Settings, rng: numpy.random.Generator) -> List[Candidate]:
+    """
+    Return the points at which the series changes, oldest first.
+
+    Changepoints are found one at a time: the most likely one anywhere in the series is
+    tested, and if it survives, the segment containing it is divided in two and the search
+    continues inside both halves. This is what makes the method able to find several
+    changes without being told how many to look for.
+
+    The search stops as soon as the best remaining candidate fails its test. Because the
+    statistic is scaled to be comparable across segments, that candidate is the one most
+    likely to have survived, so the ones it was preferred over would not have either.
+    """
+    prefix = cumulative_distances(values, starts)
+    segments = [(0, len(starts) - 1)]
+    found: List[Candidate] = []
+    while True:
+        best: Optional[Tuple[Split, Tuple[int, int]]] = None
+        for (first, last) in segments:
+            split = best_split(prefix, starts, first, last, settings.min_points)
+            if split is None:
+                continue
+            if best is None or split.statistic > best[0].statistic:
+                best = (split, (first, last))
+        if best is None:
+            logging.debug('no segment is long enough to be divided further')
+            break
+
+        (split, (first, last)) = best
+        p_value = significance(values, starts, first, last, settings.min_points,
+                               split.statistic, settings.permutations, rng)
+        label = labels[split.point]
+        if p_value > settings.p_value:
+            logging.debug(f'stopping: the best remaining candidate ({label}, statistic '
+                          f'{split.statistic:.4g}) has p-value {p_value:.4g}')
+            break
+        logging.debug(f'accepted a changepoint at {label} (statistic {split.statistic:.4g}, '
+                      f'p-value {p_value:.4g}), dividing points [{first}, {last})')
+        found.append(Candidate(split.point, split.statistic, p_value))
+        segments.remove((first, last))
+        segments += [(first, split.point), (split.point, last)]
+
+    return sorted(found)
+
+
+def describe(series: Sequence[Point], levels: numpy.ndarray,
+             found: Sequence[Candidate]) -> List[Changepoint]:
+    """
+    Turn the detected points into reportable changes.
+
+    The value reported on each side of a change is the median of the values of the
+    segment it belongs to in the final segmentation, so a change is described against
+    the level that actually surrounds it rather than against whatever segment happened
+    to be divided when it was found.
+
+    Those are the combined values the detection itself ran on, so a change is described in
+    the terms it was found in. Taking the median of the raw measurements instead would
+    weight a commit measured seven times above one measured three times, which the
+    detection does not.
+    """
+    boundaries = [0] + [candidate.point for candidate in found] + [len(series)]
+    changes: List[Changepoint] = []
+    for (start, candidate, stop) in zip(boundaries, found, boundaries[2:]):
+        before = float(numpy.median(levels[start:candidate.point]))
+        after = float(numpy.median(levels[candidate.point:stop]))
+        changes.append(Changepoint(point=candidate.point,
+                                   before_label=series[candidate.point - 1].label,
+                                   after_label=series[candidate.point].label,
+                                   before=before,
+                                   after=after,
+                                   change=(after - before) / before if before else math.nan,
+                                   p_value=candidate.p_value,
+                                   statistic=candidate.statistic))
+    return changes
+
+
+def noise_estimate(series: Sequence[Point]) -> Optional[float]:
+    """
+    Estimate the relative dispersion of a single sample, robustly.
+
+    Repeated samples at the same point measure the same thing, so their spread is noise
+    by construction, which makes them the estimate to prefer. Failing that, the change
+    between one point and the next is mostly noise too, as long as real changes are rare;
+    dividing by the square root of two turns the spread of those differences back into
+    the spread of a single measurement.
+
+    Returns None when the estimate is not expressible, which is the case for a series
+    holding values that are not strictly positive: the estimate is a relative one, and
+    such a series has no level to be relative to.
+    """
+    if any(sample <= 0 for sample in samples_of(series)):
+        return None
+
+    deviations = [abs(math.log(sample) - math.log(statistics.median(point.samples)))
+                  for point in series if len(point.samples) > 1
+                  for sample in point.samples]
+    if deviations:
+        return MAD_TO_SIGMA * statistics.median(deviations)
+
+    medians = [statistics.median(point.samples) for point in series]
+    differences = [abs(math.log(after) - math.log(before))
+                   for (before, after) in zip(medians, medians[1:])]
+    if not differences:
+        return None
+    return MAD_TO_SIGMA * statistics.median(differences) / math.sqrt(2.0)
+
+
+def analyze(series: Sequence[Point], settings: Settings,
+            rng: numpy.random.Generator) -> List[Changepoint]:
+    """Find and describe the changes in a series."""
+    if len(series) < 2 * settings.min_points:
+        logging.warning(f'the series has {len(series)} points, which is fewer than the '
+                        f'{2 * settings.min_points} needed to divide it into two segments of '
+                        f'--min-points; not looking for changepoints')
+        return []
+
+    (values, starts) = flatten(series, settings.aggregate)
+    # The levels a change is reported against have to be in the unit the benchmark was
+    # measured in, so they are kept before the values move into log space.
+    levels = values
+    if settings.log:
+        if (values <= 0).any():
+            raise ValueError('the series contains values that are zero or negative, which cannot '
+                             'be analyzed in log space. Pass --no-log to analyze the values as '
+                             'they are.')
+        values = numpy.log(values)
+
+    labels = [point.label for point in series]
+    changes = describe(series, levels, detect(values, starts, labels, settings, rng))
+    # Filtering happens here rather than during detection so that every change is measured
+    # against the segments the series was really divided into.
+    if settings.min_change:
+        kept = [change for change in changes if abs(change.change) >= settings.min_change]
+        logging.debug(f'{len(changes) - len(kept)} of {len(changes)} changepoint(s) move the '
+                      f'benchmark by less than {settings.min_change:.2%}')
+        changes = kept
+    return changes
+
+
+def serialize(changes: Sequence[Changepoint], as_json: bool) -> str:
+    """Render the changes for standard output."""
+    if as_json:
+        # `point` is an index into the series, which is bookkeeping internal to the
+        # analysis. What identifies a change to anyone else is the commits it falls between.
+        return json.dumps([{key: value for (key, value) in change._asdict().items()
+                            if key != 'point'} for change in changes], indent=2) + '\n'
+    return ''.join(f'{change.before_label} {change.after_label} '
+                   f'{change.change:+f} {change.p_value:f}\n' for change in changes)
+
+
+def report(series: Sequence[Point], changes: Sequence[Changepoint],
+           settings: Settings) -> None:
+    """Print a human-readable summary of the series and of what was found in it."""
+    out = sys.stderr
+    samples = sum(len(point.samples) for point in series)
+    print(f'Series: {len(series)} points, {samples} samples '
+          f'({samples / len(series):.1f} per point)', file=out)
+    if samples > len(series):
+        print(f'Combining the measurements of each point with their '
+              f'{settings.aggregate}', file=out)
+    noise = noise_estimate(series)
+    if noise is not None:
+        print(f'Noise: {noise:.2%} per sample (robust estimate)', file=out)
+    print(f'Detected {len(changes)} changepoint(s) at p <= {settings.p_value} using '
+          f'{settings.permutations} permutations, with at least {settings.min_points} points '
+          f'per segment', file=out)
+    if settings.min_change:
+        print(f'Reporting only changes of at least {settings.min_change:.2%}', file=out)
+    if not changes:
+        return
+
+    print('', file=out)
+    rows = [(f'{index}', change.before_label[:12], change.after_label[:12],
+             f'{change.before:.4g}', f'{change.after:.4g}',
+             f'{change.change:+.2%}', f'{change.p_value:.4g}')
+            for (index, change) in enumerate(changes, start=1)]
+    print(tabulate.tabulate(rows, headers=['#', 'BETWEEN', 'AND', 'BEFORE', 'AFTER',
+                                           'CHANGE', 'P-VALUE'],
+                            tablefmt='plain', disable_numparse=True,
+                            colalign=('right', 'left', 'left', 'right', 'right', 'right', 'right')),
+          file=out)
+
+
+def main(argv: List[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog='detect-changepoints',
+        description='Find the points at which a benchmark time series changes level, using the '
+                    'E-Divisive method.\n'
+                    '\n'
+                    'Changepoints are found one at a time. The most likely change anywhere in the '
+                    'series is located by maximizing a two-sample energy distance, which measures '
+                    'how far apart the segments on either side of it are relative to their own '
+                    'dispersion. It is then accepted or rejected by a permutation test, and if '
+                    'accepted, the segment containing it is divided and the search continues in '
+                    'both halves. Nothing needs to be assumed about the distribution of the '
+                    'measurements, and no penalty parameter needs to be chosen: the number of '
+                    'changepoints is decided by the permutation test.\n'
+                    '\n'
+                    'Note that the reported p-values are conditional on a location that was chosen '
+                    'by looking at the data, so they describe how surprising a change is rather '
+                    'than bounding a false-positive rate. Treat them as a way of ranking and '
+                    'filtering what is worth investigating.\n'
+                    '\n'
+                    'The changepoints are written to standard output, one per line, as the two '
+                    'points the change falls between followed by the relative change and its '
+                    'p-value. Pass --json for a form carrying the levels on either side as well.',
+        epilog='This script depends on the modules listed in `libcxx/utils/requirements.txt`.',
+        formatter_class=HelpFormatter)
+    parser.add_argument('--input', type=argparse.FileType('r'), default='-', metavar='FILE',
+        help='The CSV file holding the series, as one row per measurement. Only a `value` column '
+             'is required: a `commit` column labels the points and groups the measurements taken '
+             'at the same one, and an `ordinal` column puts them in order. Repeated measurements '
+             'of the same commit must be combined with --aggregate before they can be analyzed, '
+             'but they are read as they are, since they are also what tells the tool how noisy the '
+             'benchmark is. Defaults to standard input.')
+    parser.add_argument('--aggregate', choices=sorted(AGGREGATORS), default=None,
+        help='How to combine the repeated measurements of one commit into the single value that '
+             'stands for it. Required when the input holds any, and pointless otherwise. They '
+             'cannot be analyzed as separate observations: repeated runs of one commit share a '
+             'binary, so they resemble each other more than they resemble the runs of the commit '
+             'next door, and the permutation test would read that resemblance as structure and '
+             'report changes that are not there. Pick `median` unless there is a reason not to; '
+             '`min` suits a benchmark whose noise only ever makes it look slower.')
+    parser.add_argument('--p-value', type=float, default=0.05,
+        help='How unlikely a change must be, under the hypothesis that nothing changed, for it '
+             'to be reported. Lowering this reports fewer and more certain changes.')
+    parser.add_argument('--permutations', type=common.at_least(1), default=200,
+        help='How many random reorderings to use when testing a candidate change. More of them '
+             'refine the p-value (and bound how small it can be) at a proportional cost in time.')
+    parser.add_argument('--min-points', type=common.at_least(2), default=3,
+        help='The smallest number of points a segment may contain. This is what keeps a single '
+             'outlying measurement from being reported as a change of level.')
+    parser.add_argument('--min-change', type=float, default=0.0, metavar='FRACTION',
+        help='Only report changes that move the benchmark by at least this fraction, e.g. 0.02 '
+             'for 2%%. A long series measured many times can make a change of a fraction of a '
+             'percent highly significant without it being worth anyone\'s attention, so this is '
+             'the knob to reach for when the output is dominated by real but uninteresting '
+             'changes. It filters what is reported and never what is detected, so the segments '
+             'a change is measured against are the same either way.')
+    parser.add_argument('--no-log', action='store_true',
+        help='Analyze the values as they are instead of their logarithm. By default the series is '
+             'analyzed in log space, which is what makes a change be judged by how large it is '
+             'relative to the level of the benchmark rather than in absolute terms, and which '
+             'evens out the dispersion of benchmarks whose noise grows with their duration.')
+    parser.add_argument('--seed', type=int, default=0,
+        help='The seed of the random number generator used to permute the points. The default is '
+             'fixed so that repeated runs on the same series agree.')
+    parser.add_argument('--json', action='store_true',
+        help='Write the changepoints as JSON rather than as a table.')
+    parser.add_argument('--output', type=pathlib.Path, default=None,
+        help='Where to write the changepoints. Defaults to standard output.')
+    parser.add_argument('-q', '--quiet', action='store_true',
+        help='Do not print the human-readable summary to standard error.')
+    parser.add_argument('-v', '--verbose', action='count', default=0,
+        help='Verbosity level: passing the option multiple times increases the level.')
+    args = parser.parse_args(argv)
+
+    # --quiet raises the logging threshold rather than silencing everything, since we
+    # still want to see warnings.
+    logging.basicConfig(format='%(levelname)s: %(message)s',
+                        level=logging.DEBUG if args.verbose else
+                              logging.WARNING if args.quiet else logging.INFO)
+
+    if not 0 < args.p_value <= 1:
+        raise ValueError(f'--p-value must be in (0, 1], got {args.p_value}')
+    if args.min_change < 0:
+        raise ValueError(f'--min-change must not be negative, got {args.min_change}')
+
+    series = read_series(args.input)
+    if not series:
+        raise ValueError('the input contains no data')
+
+    repeated = sum(1 for point in series if len(point.samples) > 1)
+    if repeated and args.aggregate is None:
+        raise ValueError(f'{repeated} of the {len(series)} points hold more than one measurement, '
+                         f'so --aggregate must say how to combine them into the one value that '
+                         f'stands for each point (one of: {", ".join(sorted(AGGREGATORS))}). They '
+                         f'cannot be analyzed as separate observations: repeated runs of one '
+                         f'commit share a binary, and the permutation test would read the '
+                         f'resemblance between them as structure.')
+
+    settings = Settings(min_points=args.min_points, p_value=args.p_value,
+                        permutations=args.permutations, min_change=args.min_change,
+                        log=not args.no_log,
+                        # With one measurement per point there is nothing to combine, so every
+                        # method is the identity and which one is named makes no difference.
+                        aggregate=args.aggregate or 'median')
+    changes = analyze(series, settings, numpy.random.default_rng(args.seed))
+
+    if not args.quiet:
+        report(series, changes, settings)
+
+    # Write the output all at once at the end, to avoid partial output in case of failure.
+    contents = serialize(changes, args.json)
+    if args.output is None:
+        sys.stdout.write(contents)
+    else:
+        args.output.write_text(contents)
+    return 0
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except (ValueError, OSError) as error:
+        sys.exit(f'error: {error}')
