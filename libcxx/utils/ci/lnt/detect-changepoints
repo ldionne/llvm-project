@@ -20,11 +20,6 @@ import sys
 import tabulate
 
 
-# Scaling that turns a robust median absolute deviation into an estimate of the standard
-# deviation of a normal distribution.
-MAD_TO_SIGMA = 1.4826
-
-
 # How the repeated measurements of one point may be combined into the single value that
 # stands for it. The median is the one to reach for unless there is a reason not to; the
 # minimum suits a benchmark whose noise only ever makes it look slower.
@@ -167,23 +162,6 @@ def read_series(stream) -> List[Point]:
     return series
 
 
-def flatten(series: Sequence[Point], aggregate: str) -> numpy.ndarray:
-    """
-    Return the single value that stands for each point.
-
-    The repeated measurements of a point are combined into that value using the named
-    method. They are deliberately not carried into the analysis as separate observations:
-    repeated runs of one commit share a binary, so they resemble each other more than they
-    resemble the runs of the commit next door, and the permutation test in `significance`
-    would read that resemblance as structure and report changes that are not there.
-
-    The samples of a point are combined in sorted order so that the result is reproducible
-    to the last bit, rather than merely to within a rounding error.
-    """
-    combine = AGGREGATORS[aggregate]
-    return numpy.array([combine(sorted(point.samples)) for point in series], dtype=float)
-
-
 def cumulative_distances(values: numpy.ndarray) -> numpy.ndarray:
     """
     Return the prefix sums of the pairwise distance matrix of `values`.
@@ -223,8 +201,6 @@ def energy_statistic(prefix: numpy.ndarray, first: int, last: int,
     is comparable to that of a balanced one. Without it, splits near the middle of a
     segment would win on size alone.
     """
-    # Everything here is counted in points, each of which contributes the one value that
-    # `flatten` combined its measurements into.
     before = splits - first
     after = last - splits
     # The two within-segment blocks count every unordered pair twice, so pairing them with
@@ -379,6 +355,10 @@ def noise_estimate(series: Sequence[Point]) -> Optional[float]:
     Returns None when there is nothing to estimate from, which is the case for a series
     holding a single point measured a single time.
     """
+    # Scaling that turns a robust median absolute deviation into an estimate of the standard
+    # deviation of a normal distribution.
+    MAD_TO_SIGMA = 1.4826
+
     deviations = [abs(math.log(sample) - math.log(statistics.median(point.samples)))
                   for point in series if len(point.samples) > 1
                   for sample in point.samples]
@@ -402,7 +382,9 @@ def analyze(series: Sequence[Point], settings: Settings,
                         f'--min-points; not looking for changepoints')
         return []
 
-    values = flatten(series, settings.aggregate)
+    aggregator = AGGREGATORS[settings.aggregate]
+    values: numpy.ndarray = numpy.array([aggregator(sorted(point.samples)) for point in series], dtype=float)
+
     labels = [point.label for point in series]
     return describe(series, values, detect(values, labels, settings, rng))
 
