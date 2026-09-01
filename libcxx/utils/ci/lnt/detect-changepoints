@@ -65,7 +65,6 @@ class Candidate(NamedTuple):
 
 class Changepoint(NamedTuple):
     """A detected change, located between two consecutive points of the series."""
-    point: int          # index of the first point after the change
     before_label: str   # last point before the change
     after_label: str    # first point after the change
     before: float       # representative value of the segment before the change
@@ -160,52 +159,38 @@ def read_series(stream) -> List[Point]:
     return series
 
 
-def samples_of(points: Sequence[Point]) -> List[float]:
-    """Every sample measured at any of `points`."""
-    return [sample for point in points for sample in point.samples]
-
-
-def flatten(series: Sequence[Point], aggregate: str) -> Tuple[numpy.ndarray, numpy.ndarray]:
+def flatten(series: Sequence[Point], aggregate: str) -> numpy.ndarray:
     """
-    Return one value per point, and where each point starts in that array.
+    Return the single value that stands for each point.
 
-    The repeated measurements of a point are combined into the single value that stands
-    for it, using the named method. They are deliberately not carried into the analysis as
-    separate observations: repeated runs of one commit share a binary, so they resemble
-    each other more than they resemble the runs of the commit next door, and the
-    permutation test in `significance` would read that resemblance as structure and report
-    changes that are not there.
-
-    The returned `starts` has one more element than there are points, so the values of
-    point `i` are `values[starts[i]:starts[i + 1]]`.
+    The repeated measurements of a point are combined into that value using the named
+    method. They are deliberately not carried into the analysis as separate observations:
+    repeated runs of one commit share a binary, so they resemble each other more than they
+    resemble the runs of the commit next door, and the permutation test in `significance`
+    would read that resemblance as structure and report changes that are not there.
 
     The samples of a point are combined in sorted order so that the result is reproducible
     to the last bit, rather than merely to within a rounding error.
     """
     combine = AGGREGATORS[aggregate]
-    values = numpy.array([combine(sorted(point.samples)) for point in series], dtype=float)
-    # One value per point, so a point begins wherever its index says it does.
-    starts = numpy.arange(len(series) + 1)
-    return (values, starts)
+    return numpy.array([combine(sorted(point.samples)) for point in series], dtype=float)
 
 
-def cumulative_distances(values: numpy.ndarray, starts: numpy.ndarray) -> numpy.ndarray:
+def cumulative_distances(values: numpy.ndarray) -> numpy.ndarray:
     """
-    Return the prefix sums of the pairwise distance matrix of `values`, per point.
+    Return the prefix sums of the pairwise distance matrix of `values`.
 
-    Element [i, j] holds the sum of the distances between the values of the first `i`
-    points and the values of the first `j` points, which makes the sum over any
-    rectangular block of points computable with four lookups. The scan for a changepoint
-    needs exactly such block sums for every candidate location, and getting them in
-    constant time is what keeps the permutation test affordable.
+    Element [i, j] holds the sum of the distances between the first `i` values and the
+    first `j` values, which makes the sum over any rectangular block of points computable
+    with four lookups. The scan for a changepoint needs exactly such block sums for every
+    candidate location, and getting them in constant time is what keeps the permutation
+    test affordable.
     """
     # The energy statistic is consistent for any exponent in (0, 2) applied to the
     # distances. One is the usual choice and the one this tool is calibrated against.
     distances = numpy.abs(values[:, None] - values[None, :])
-    grouped = numpy.add.reduceat(numpy.add.reduceat(distances, starts[:-1], axis=0),
-                                 starts[:-1], axis=1)
-    prefix = numpy.zeros((len(grouped) + 1, len(grouped) + 1))
-    prefix[1:, 1:] = grouped.cumsum(axis=0).cumsum(axis=1)
+    prefix = numpy.zeros((len(values) + 1, len(values) + 1))
+    prefix[1:, 1:] = distances.cumsum(axis=0).cumsum(axis=1)
     return prefix
 
 
@@ -215,7 +200,7 @@ def block(prefix: numpy.ndarray, row_begin, row_end, column_begin, column_end):
             - prefix[row_end, column_begin] + prefix[row_begin, column_begin])
 
 
-def energy_statistic(prefix: numpy.ndarray, starts: numpy.ndarray, first: int, last: int,
+def energy_statistic(prefix: numpy.ndarray, first: int, last: int,
                      splits: numpy.ndarray) -> numpy.ndarray:
     """
     Return the scaled energy statistic for dividing the points [first, last) at each of
@@ -232,8 +217,8 @@ def energy_statistic(prefix: numpy.ndarray, starts: numpy.ndarray, first: int, l
     """
     # Everything here is counted in points, each of which contributes the one value that
     # `flatten` combined its measurements into.
-    before = starts[splits] - starts[first]
-    after = starts[last] - starts[splits]
+    before = splits - first
+    after = last - splits
     # The two within-segment blocks count every unordered pair twice, so pairing them with
     # the doubled pair count `n * (n - 1)` is what averages over each pair exactly once.
     across = block(prefix, first, splits, splits, last)
@@ -245,30 +230,29 @@ def energy_statistic(prefix: numpy.ndarray, starts: numpy.ndarray, first: int, l
     return distance * before * after / (before + after)
 
 
-def best_split(prefix: numpy.ndarray, starts: numpy.ndarray, first: int, last: int,
+def best_split(prefix: numpy.ndarray, first: int, last: int,
                min_points: int) -> Optional[Split]:
     """
     Return the most likely changepoint in the points [first, last), or None when the
-    segment cannot be divided.
+    segment is too short to be divided.
 
     Candidate locations are the boundaries between points, never inside one: a point holds
     a single value, and the repeated measurements it was combined from are measurements of
     the same thing, so a change cannot happen partway through them.
+
+    Since `--min-points` is at least two, every candidate leaves at least two points on
+    each side, which is what the statistic needs to have a within-segment dispersion to
+    speak of.
     """
     candidates = numpy.arange(first + min_points, last - min_points + 1)
-    # The statistic needs at least two points on each side to have a within-segment
-    # dispersion to speak of. This also rejects a segment with no candidate at all.
-    usable = ((starts[candidates] - starts[first] >= 2)
-              & (starts[last] - starts[candidates] >= 2))
-    if not usable.any():
+    if candidates.size == 0:
         return None
-    candidates = candidates[usable]
-    energies = energy_statistic(prefix, starts, first, last, candidates)
+    energies = energy_statistic(prefix, first, last, candidates)
     best = int(numpy.argmax(energies))
     return Split(point=int(candidates[best]), statistic=float(energies[best]))
 
 
-def significance(values: numpy.ndarray, starts: numpy.ndarray, first: int, last: int,
+def significance(values: numpy.ndarray, first: int, last: int,
                  min_points: int, observed: float, permutations: int,
                  rng: numpy.random.Generator) -> float:
     """
@@ -288,21 +272,17 @@ def significance(values: numpy.ndarray, starts: numpy.ndarray, first: int, last:
     avoids reporting a p-value of exactly zero, which no finite number of permutations
     can justify.
     """
-    (begin, end) = (starts[first], starts[last])
-    # The point boundaries stay where they are: we shuffle the values across positions,
-    # not the positions themselves.
-    boundaries = starts[first:last + 1] - begin
-    values_of_segment = values[begin:end]
+    segment = values[first:last]
     atypical = 0
     for _ in range(permutations):
-        prefix = cumulative_distances(rng.permutation(values_of_segment), boundaries)
-        split = best_split(prefix, boundaries, 0, last - first, min_points)
+        prefix = cumulative_distances(rng.permutation(segment))
+        split = best_split(prefix, 0, len(segment), min_points)
         if split is not None and split.statistic >= observed:
             atypical += 1
     return (atypical + 1) / (permutations + 1)
 
 
-def detect(values: numpy.ndarray, starts: numpy.ndarray, labels: Sequence[str],
+def detect(values: numpy.ndarray, labels: Sequence[str],
            settings: Settings, rng: numpy.random.Generator) -> List[Candidate]:
     """
     Return the points at which the series changes, oldest first.
@@ -316,13 +296,13 @@ def detect(values: numpy.ndarray, starts: numpy.ndarray, labels: Sequence[str],
     statistic is scaled to be comparable across segments, that candidate is the one most
     likely to have survived, so the ones it was preferred over would not have either.
     """
-    prefix = cumulative_distances(values, starts)
-    segments = [(0, len(starts) - 1)]
+    prefix = cumulative_distances(values)
+    segments = [(0, len(values))]
     found: List[Candidate] = []
     while True:
         best: Optional[Tuple[Split, Tuple[int, int]]] = None
         for (first, last) in segments:
-            split = best_split(prefix, starts, first, last, settings.min_points)
+            split = best_split(prefix, first, last, settings.min_points)
             if split is None:
                 continue
             if best is None or split.statistic > best[0].statistic:
@@ -332,7 +312,7 @@ def detect(values: numpy.ndarray, starts: numpy.ndarray, labels: Sequence[str],
             break
 
         (split, (first, last)) = best
-        p_value = significance(values, starts, first, last, settings.min_points,
+        p_value = significance(values, first, last, settings.min_points,
                                split.statistic, settings.permutations, rng)
         label = labels[split.point]
         if p_value > settings.p_value:
@@ -368,8 +348,7 @@ def describe(series: Sequence[Point], levels: numpy.ndarray,
     for (start, candidate, stop) in zip(boundaries, found, boundaries[2:]):
         before = float(numpy.median(levels[start:candidate.point]))
         after = float(numpy.median(levels[candidate.point:stop]))
-        changes.append(Changepoint(point=candidate.point,
-                                   before_label=series[candidate.point - 1].label,
+        changes.append(Changepoint(before_label=series[candidate.point - 1].label,
                                    after_label=series[candidate.point].label,
                                    before=before,
                                    after=after,
@@ -393,7 +372,7 @@ def noise_estimate(series: Sequence[Point]) -> Optional[float]:
     holding values that are not strictly positive: the estimate is a relative one, and
     such a series has no level to be relative to.
     """
-    if any(sample <= 0 for sample in samples_of(series)):
+    if any(sample <= 0 for point in series for sample in point.samples):
         return None
 
     deviations = [abs(math.log(sample) - math.log(statistics.median(point.samples)))
@@ -419,7 +398,7 @@ def analyze(series: Sequence[Point], settings: Settings,
                         f'--min-points; not looking for changepoints')
         return []
 
-    (values, starts) = flatten(series, settings.aggregate)
+    values = flatten(series, settings.aggregate)
     # The levels a change is reported against have to be in the unit the benchmark was
     # measured in, so they are kept before the values move into log space.
     levels = values
@@ -431,7 +410,7 @@ def analyze(series: Sequence[Point], settings: Settings,
         values = numpy.log(values)
 
     labels = [point.label for point in series]
-    changes = describe(series, levels, detect(values, starts, labels, settings, rng))
+    changes = describe(series, levels, detect(values, labels, settings, rng))
     # Filtering happens here rather than during detection so that every change is measured
     # against the segments the series was really divided into.
     if settings.min_change:
@@ -445,10 +424,7 @@ def analyze(series: Sequence[Point], settings: Settings,
 def serialize(changes: Sequence[Changepoint], as_json: bool) -> str:
     """Render the changes for standard output."""
     if as_json:
-        # `point` is an index into the series, which is bookkeeping internal to the
-        # analysis. What identifies a change to anyone else is the commits it falls between.
-        return json.dumps([{key: value for (key, value) in change._asdict().items()
-                            if key != 'point'} for change in changes], indent=2) + '\n'
+        return json.dumps([change._asdict() for change in changes], indent=2) + '\n'
     return ''.join(f'{change.before_label} {change.after_label} '
                    f'{change.change:+f} {change.p_value:f}\n' for change in changes)
 
