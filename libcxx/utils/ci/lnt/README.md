@@ -103,7 +103,7 @@ curl -s -X POST "${LNT_URL}/api/v5/libcxx/query" -H 'Content-Type: application/j
           \"test\": [\"${BENCHMARK}\"], \"limit\": 10000}"                              \
   | jq -c '.items[]' > series.jsonl
 
-detect-changepoints --input series.jsonl --aggregate median --min-change 0.02
+detect-changepoints --input series.jsonl --aggregate median
 ```
 
 The changepoints come back on standard output in the same shape, one JSON object per line,

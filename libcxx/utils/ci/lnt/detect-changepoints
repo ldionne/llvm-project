@@ -78,7 +78,6 @@ class Settings(NamedTuple):
     min_points: int
     p_value: float
     permutations: int
-    min_change: float
     aggregate: str
 
 
@@ -405,15 +404,7 @@ def analyze(series: Sequence[Point], settings: Settings,
 
     values = flatten(series, settings.aggregate)
     labels = [point.label for point in series]
-    changes = describe(series, values, detect(values, labels, settings, rng))
-    # Filtering happens here rather than during detection so that every change is measured
-    # against the segments the series was really divided into.
-    if settings.min_change:
-        kept = [change for change in changes if abs(change.change) >= settings.min_change]
-        logging.debug(f'{len(changes) - len(kept)} of {len(changes)} changepoint(s) move the '
-                      f'benchmark by less than {settings.min_change:.2%}')
-        changes = kept
-    return changes
+    return describe(series, values, detect(values, labels, settings, rng))
 
 
 def serialize(changes: Sequence[Changepoint]) -> str:
@@ -437,8 +428,6 @@ def report(series: Sequence[Point], changes: Sequence[Changepoint],
     print(f'Detected {len(changes)} changepoint(s) at p <= {settings.p_value} using '
           f'{settings.permutations} permutations, with at least {settings.min_points} points '
           f'per segment', file=out)
-    if settings.min_change:
-        print(f'Reporting only changes of at least {settings.min_change:.2%}', file=out)
     if not changes:
         return
 
@@ -504,13 +493,6 @@ def main(argv: List[str]) -> int:
     parser.add_argument('--min-points', type=common.at_least(2), default=3,
         help='The smallest number of points a segment may contain. This is what keeps a single '
              'outlying measurement from being reported as a change of level.')
-    parser.add_argument('--min-change', type=float, default=0.0, metavar='FRACTION',
-        help='Only report changes that move the benchmark by at least this fraction, e.g. 0.02 '
-             'for 2%%. A long series measured many times can make a change of a fraction of a '
-             'percent highly significant without it being worth anyone\'s attention, so this is '
-             'the knob to reach for when the output is dominated by real but uninteresting '
-             'changes. It filters what is reported and never what is detected, so the segments '
-             'a change is measured against are the same either way.')
     parser.add_argument('--seed', type=int, default=0,
         help='The seed of the random number generator used to permute the points. The default is '
              'fixed so that repeated runs on the same series agree.')
@@ -530,8 +512,6 @@ def main(argv: List[str]) -> int:
 
     if not 0 < args.p_value <= 1:
         raise ValueError(f'--p-value must be in (0, 1], got {args.p_value}')
-    if args.min_change < 0:
-        raise ValueError(f'--min-change must not be negative, got {args.min_change}')
 
     series = read_series(args.input)
     if not series:
@@ -547,7 +527,7 @@ def main(argv: List[str]) -> int:
                          f'resemblance between them as structure.')
 
     settings = Settings(min_points=args.min_points, p_value=args.p_value,
-                        permutations=args.permutations, min_change=args.min_change,
+                        permutations=args.permutations,
                         # With one measurement per point there is nothing to combine, so every
                         # method is the identity and which one is named makes no difference.
                         aggregate=args.aggregate or 'median')
