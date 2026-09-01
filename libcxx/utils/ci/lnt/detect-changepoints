@@ -10,7 +10,6 @@
 from typing import Dict, List, NamedTuple, Optional, Sequence, Tuple
 import argparse
 import common
-import csv
 import json
 import logging
 import math
@@ -91,50 +90,56 @@ class HelpFormatter(argparse.ArgumentDefaultsHelpFormatter,
 
 def read_series(stream) -> List[Point]:
     """
-    Read a series from a CSV stream, grouping the samples of each point together.
+    Read a series from a JSONL stream, grouping the samples of each point together.
 
-    Only a `value` column is required. A `commit` column labels the points and gathers
-    the rows that belong to the same one, and an `ordinal` column places them in order.
-    Without an `ordinal`, the order of the rows is the order of the series; without a
-    `commit`, every row is a point of its own.
+    Only a `value` field is required. A `commit` field labels the points and gathers the
+    records that belong to the same one, and an `ordinal` field places them in order.
+    Without an `ordinal`, the order of the records is the order of the series; without a
+    `commit`, every record is a point of its own.
+
+    Any other field is ignored, which is what lets the records a LNT instance produces be
+    read exactly as they come out of it.
     """
-    reader = csv.DictReader(stream)
-    if reader.fieldnames is None:
-        raise ValueError('the input is empty: expected a CSV header with at least a `value` column')
-    fields = [field.strip() for field in reader.fieldnames]
-    reader.fieldnames = fields
-    if 'value' not in fields:
-        raise ValueError(f'the input has no `value` column (found: {", ".join(fields) or "nothing"})')
-    (has_ordinal, has_test) = ('ordinal' in fields, 'test' in fields)
-
     points: Dict[str, Point] = {} # in order of first appearance
     tests = set()
-    for (number, row) in enumerate(reader, start=2): # line 1 is the header
+    has_ordinal: Optional[bool] = None
+    for (number, line) in enumerate(stream, start=1):
+        line = line.strip()
+        if not line:
+            continue
         try:
-            value = float(row['value'])
-        except (KeyError, TypeError, ValueError):
-            raise ValueError(f'line {number}: `value` is not a number: {row.get("value")!r}')
+            record = json.loads(line)
+        except json.JSONDecodeError as error:
+            raise ValueError(f'line {number} is not valid JSON: {error}')
+        if not isinstance(record, dict):
+            raise ValueError(f'line {number} is not a JSON object, but a {type(record).__name__}')
+
+        if 'value' not in record:
+            raise ValueError(f'line {number} has no `value` field')
+        value = record['value']
+        # `bool` is a subclass of `int`, and a measurement that is `true` is a mistake
+        # rather than a measurement of one.
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f'line {number}: `value` is not a number: {value!r}')
+        value = float(value)
         if not math.isfinite(value):
-            raise ValueError(f'line {number}: `value` is not finite: {row["value"]!r}')
+            raise ValueError(f'line {number}: `value` is not finite: {record["value"]!r}')
 
-        ordinal = None
-        if has_ordinal:
-            raw = (row.get('ordinal') or '').strip()
-            if not raw:
-                raise ValueError(f'line {number}: `ordinal` is empty. It must be given for every '
-                                 f'row or for none, since a partial order cannot be used to sort '
-                                 f'the series.')
-            try:
-                ordinal = int(raw)
-            except ValueError:
-                raise ValueError(f'line {number}: `ordinal` is not an integer: {raw!r}')
+        ordinal = record.get('ordinal')
+        if has_ordinal is None:
+            has_ordinal = ordinal is not None
+        elif (ordinal is not None) != has_ordinal:
+            raise ValueError(f'line {number}: `ordinal` must be given for every record or for '
+                             f'none, since a partial order cannot be used to sort the series.')
+        if ordinal is not None and (isinstance(ordinal, bool) or not isinstance(ordinal, int)):
+            raise ValueError(f'line {number}: `ordinal` is not an integer: {ordinal!r}')
 
-        if has_test:
-            tests.add((row.get('test') or '').strip())
+        if 'test' in record:
+            tests.add(str(record['test']).strip())
 
-        # Rows that carry no label are each a point of their own: there is nothing to group
-        # them by, so the line they came from is the only identity they can be given.
-        label = (row.get('commit') or '').strip() or f'line {number}'
+        # Records that carry no label are each a point of their own: there is nothing to
+        # group them by, so the line they came from is the only identity they can be given.
+        label = str(record.get('commit') or '').strip() or f'line {number}'
         if label in points:
             existing = points[label]
             if existing.ordinal != ordinal:
@@ -144,7 +149,7 @@ def read_series(stream) -> List[Point]:
         else:
             points[label] = Point(label=label, ordinal=ordinal, samples=[value])
 
-    # A `test` column is what an export holding several benchmarks looks like. Analyzing
+    # A `test` field is what an export holding several benchmarks looks like. Analyzing
     # them as one series would silently interleave them and report changes that are really
     # just the input alternating between benchmarks, so insist on being given only one.
     if len(tests) > 1:
@@ -421,12 +426,9 @@ def analyze(series: Sequence[Point], settings: Settings,
     return changes
 
 
-def serialize(changes: Sequence[Changepoint], as_json: bool) -> str:
-    """Render the changes for standard output."""
-    if as_json:
-        return json.dumps([change._asdict() for change in changes], indent=2) + '\n'
-    return ''.join(f'{change.before_label} {change.after_label} '
-                   f'{change.change:+f} {change.p_value:f}\n' for change in changes)
+def serialize(changes: Sequence[Changepoint]) -> str:
+    """Render the changes as one JSON object per line."""
+    return ''.join(json.dumps(change._asdict(), sort_keys=True) + '\n' for change in changes)
 
 
 def report(series: Sequence[Point], changes: Sequence[Changepoint],
@@ -482,18 +484,19 @@ def main(argv: List[str]) -> int:
                     'than bounding a false-positive rate. Treat them as a way of ranking and '
                     'filtering what is worth investigating.\n'
                     '\n'
-                    'The changepoints are written to standard output, one per line, as the two '
-                    'points the change falls between followed by the relative change and its '
-                    'p-value. Pass --json for a form carrying the levels on either side as well.',
-        epilog='This script depends on the modules listed in `libcxx/utils/requirements.txt`.',
+                    'The changepoints are written to standard output as one JSON object per line, '
+                    'carrying the two points the change falls between, the level on either side of '
+                    'it, the relative change and its p-value.',
+        epilog='This script depends on the modules listed in `libcxx/utils/ci/lnt/requirements.txt`.',
         formatter_class=HelpFormatter)
     parser.add_argument('--input', type=argparse.FileType('r'), default='-', metavar='FILE',
-        help='The CSV file holding the series, as one row per measurement. Only a `value` column '
-             'is required: a `commit` column labels the points and groups the measurements taken '
-             'at the same one, and an `ordinal` column puts them in order. Repeated measurements '
-             'of the same commit must be combined with --aggregate before they can be analyzed, '
-             'but they are read as they are, since they are also what tells the tool how noisy the '
-             'benchmark is. Defaults to standard input.')
+        help='The JSONL file holding the series, as one JSON object per measurement. Only a '
+             '`value` field is required: a `commit` field labels the points and groups the '
+             'measurements taken at the same one, an `ordinal` field puts them in order, and any '
+             'other field is ignored, so the records a LNT instance produces can be read as they '
+             'are. Repeated measurements of the same commit must be combined with --aggregate '
+             'before they can be analyzed, but they are read as they are, since they are also what '
+             'tells the tool how noisy the benchmark is. Defaults to standard input.')
     parser.add_argument('--aggregate', choices=sorted(AGGREGATORS), default=None,
         help='How to combine the repeated measurements of one commit into the single value that '
              'stands for it. Required when the input holds any, and pointless otherwise. They '
@@ -526,8 +529,6 @@ def main(argv: List[str]) -> int:
     parser.add_argument('--seed', type=int, default=0,
         help='The seed of the random number generator used to permute the points. The default is '
              'fixed so that repeated runs on the same series agree.')
-    parser.add_argument('--json', action='store_true',
-        help='Write the changepoints as JSON rather than as a table.')
     parser.add_argument('--output', type=pathlib.Path, default=None,
         help='Where to write the changepoints. Defaults to standard output.')
     parser.add_argument('-q', '--quiet', action='store_true',
@@ -572,7 +573,7 @@ def main(argv: List[str]) -> int:
         report(series, changes, settings)
 
     # Write the output all at once at the end, to avoid partial output in case of failure.
-    contents = serialize(changes, args.json)
+    contents = serialize(changes)
     if args.output is None:
         sys.stdout.write(contents)
     else:

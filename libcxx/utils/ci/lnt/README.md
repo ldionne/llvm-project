@@ -90,23 +90,27 @@ two anchor commits, but not where. `detect-changepoints` is what turns that data
 an observation: given the history of a single benchmark, it reports the points at which it
 changed level, which is the input to deciding where finer-grained data is worth gathering.
 
-It knows nothing about LNT and reads its series as CSV, so the data can come from an LNT
-instance, from a local experiment, or from anywhere else. Only a `value` column is required;
-`commit` labels the points and groups the measurements taken at the same one, and `ordinal`
-orders them:
+It knows nothing about LNT and reads its series as JSONL, one JSON object per measurement,
+so the data can come from an LNT instance, from a local experiment, or from anywhere else.
+Only a `value` field is required; `commit` labels the points and groups the measurements
+taken at the same one, `ordinal` orders them, and any other field is ignored. That last part
+is what lets the records an LNT instance produces be piped in as they are:
 
 ```
 # Extract the history of one benchmark from a LNT instance.
 curl -s -X POST "${LNT_URL}/api/v5/libcxx/query" -H 'Content-Type: application/json'    \
      -d "{\"machine\": \"${MACHINE}\", \"metric\": \"execution_time\",                  \
           \"test\": [\"${BENCHMARK}\"], \"limit\": 10000}"                              \
-  | jq -r '"commit,ordinal,value", (.items[] | "\(.commit),\(.ordinal),\(.value)")'     \
-  > series.csv
+  | jq -c '.items[]' > series.jsonl
 
-detect-changepoints --input series.csv --aggregate median --min-change 0.02
+detect-changepoints --input series.jsonl --aggregate median --min-change 0.02
 ```
 
-A commit that was benchmarked several times appears as several rows, and `--aggregate` says
+The changepoints come back on standard output in the same shape, one JSON object per line,
+carrying the commits the change falls between, the level on either side of it, the relative
+change and its p-value.
+
+A commit that was benchmarked several times appears as several records, and `--aggregate` says
 how to reduce them to the one value that stands for that commit. It has no default and is
 required whenever the input holds repeats, because the alternative of treating them as
 independent observations is wrong in a way that is invisible in the output: repeated runs of
