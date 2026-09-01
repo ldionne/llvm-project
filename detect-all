@@ -1,0 +1,320 @@
+#!/usr/bin/env python3
+"""
+Run `detect-changepoints` over every benchmark in a local cache.
+
+Reads the JSONL written by `fetch-series`, splits it into one series per
+benchmark, and shells out to `detect-changepoints` for each of them in
+parallel. Writes one JSONL record per detected change, carrying enough context
+for a later step to group and rank them without going back to the cache.
+
+The changes come out unranked and unfiltered beyond what `detect-changepoints`
+was told to apply. Deciding which of them are worth anyone's time is the job of
+whatever reads this output: a full sweep finds thousands, most of them small.
+
+Usage:
+    ./detect-all --machine macos-26.5-arm64-20260812 > changes.jsonl
+    ./detect-all --limit 200 --jobs 8            # a subset, for iterating
+    ./detect-all --test 'BM_align/256' --test 'BM_align/64'
+"""
+
+import argparse
+import collections
+import concurrent.futures
+import hashlib
+import json
+import math
+import os
+import pathlib
+import statistics
+import subprocess
+import sys
+import time
+
+# Scaling that turns a robust median absolute deviation into an estimate of the
+# standard deviation of a normal distribution.
+MAD_TO_SIGMA = 1.4826
+
+HERE = pathlib.Path(__file__).resolve().parent
+DEFAULT_DETECTOR = HERE / 'libcxx' / 'utils' / 'ci' / 'lnt' / 'detect-changepoints'
+
+
+class Series:
+    """One benchmark's history on one machine: the values measured at each commit."""
+
+    __slots__ = ('test', 'ordinals', 'samples')
+
+    def __init__(self, test):
+        self.test = test
+        self.ordinals = []          # ascending, filled in once reading is done
+        self.samples = {}           # ordinal -> [value, ...]
+
+    @property
+    def points(self):
+        return len(self.ordinals)
+
+    @property
+    def sample_count(self):
+        return sum(len(values) for values in self.samples.values())
+
+
+def read_cache(path, wanted_tests=None):
+    """Load a cache file into {test name: Series} and {ordinal: commit}.
+
+    The rows of a cache file are ordered by commit, so every benchmark is
+    interleaved with every other and the whole file has to be read before any
+    one series is complete.
+    """
+    series = {}
+    commits = {}
+    for line in path.open():
+        line = line.strip()
+        if not line:
+            continue
+        row = json.loads(line)
+        test = row['test']
+        if wanted_tests is not None and test not in wanted_tests:
+            continue
+        ordinal = row['ordinal']
+        # The commit a given ordinal names is a property of the history, not of
+        # any one benchmark, so it is kept once rather than per series.
+        known = commits.setdefault(ordinal, row['commit'])
+        if known != row['commit']:
+            raise ValueError(f'ordinal {ordinal} names two different commits '
+                             f'({known} and {row["commit"]}), so it cannot be used to '
+                             f'identify a point of the series')
+        entry = series.get(test)
+        if entry is None:
+            entry = series[test] = Series(test)
+        entry.samples.setdefault(ordinal, []).append(row['value'])
+
+    for entry in series.values():
+        entry.ordinals = sorted(entry.samples)
+    return series, commits
+
+
+def noise_estimate(series):
+    """Estimate the relative dispersion of a single measurement, robustly.
+
+    Ranking changes by how large they are relative to the benchmark's own noise
+    is this script's job, so the estimate lives here: `detect-changepoints` finds
+    changes and says how surprising each one is, and says nothing about how large
+    it is in units the benchmark sets.
+
+    NOTE: the within-point branch below is biased low, badly at three samples per
+    point (which is what machines.json configures): the deviations are taken from
+    each point's own median, so with an odd sample count one of them is exactly
+    zero and a third of the pool drags the median down. Measured against a known
+    2% noise level it returns about 0.46x. Pooling the pairwise differences
+    within each point instead, and dividing by sqrt(2) as the fallback branch
+    already does, is unbiased at every sample count.
+    """
+    values = [value for ordinal in series.ordinals for value in series.samples[ordinal]]
+    if any(value <= 0 for value in values):
+        return None
+
+    deviations = [abs(math.log(value) - math.log(statistics.median(repeats)))
+                  for ordinal in series.ordinals
+                  if len(repeats := series.samples[ordinal]) > 1
+                  for value in repeats]
+    if deviations:
+        return MAD_TO_SIGMA * statistics.median(deviations)
+
+    medians = [statistics.median(series.samples[ordinal]) for ordinal in series.ordinals]
+    differences = [abs(math.log(after) - math.log(before))
+                   for (before, after) in zip(medians, medians[1:])]
+    if not differences:
+        return None
+    return MAD_TO_SIGMA * statistics.median(differences) / math.sqrt(2.0)
+
+
+def as_jsonl(series, commits):
+    """Render a series as the JSONL that detect-changepoints reads."""
+    return ''.join(json.dumps({'commit': commits[ordinal], 'ordinal': ordinal, 'value': value})
+                   + '\n'
+                   for ordinal in series.ordinals
+                   for value in series.samples[ordinal])
+
+
+def seed_for(test):
+    """A seed that depends only on the benchmark name.
+
+    Python's hash() is salted per process, so it cannot be used: the same sweep
+    would permute differently from one run to the next and its output would stop
+    being comparable.
+    """
+    digest = hashlib.sha256(test.encode()).digest()
+    return int.from_bytes(digest[:4], 'big')
+
+
+def analyze(series, commits, machine, metric, command, options):
+    """Run the detector over one series and return its changes as records."""
+    argv = list(command) + ['--quiet', '--seed', str(seed_for(series.test))] + options
+    completed = subprocess.run(argv, input=as_jsonl(series, commits), capture_output=True,
+                               text=True)
+    if completed.returncode != 0:
+        raise RuntimeError((completed.stderr or 'no output').strip().splitlines()[-1])
+
+    changes = [json.loads(line) for line in completed.stdout.splitlines() if line.strip()]
+    noise = noise_estimate(series)
+    # An ordinal for each end of the interval, so a later step can order and group
+    # the intervals without having to resolve commit names itself.
+    ordinal_of = {commits[ordinal]: ordinal for ordinal in series.ordinals}
+    records = []
+    for change in changes:
+        relative = abs(change['change']) / noise if noise else None
+        records.append({
+            'machine': machine,
+            'metric': metric,
+            'test': series.test,
+            'before_commit': change['before_label'],
+            'after_commit': change['after_label'],
+            'before_ordinal': ordinal_of.get(change['before_label']),
+            'after_ordinal': ordinal_of.get(change['after_label']),
+            'before': change['before'],
+            'after': change['after'],
+            'change': change['change'],
+            'direction': 'slower' if change['change'] > 0 else 'faster',
+            'p_value': change['p_value'],
+            'statistic': change['statistic'],
+            'noise': noise,
+            'change_over_noise': relative,
+            'points': series.points,
+            'samples': series.sample_count,
+            # How many changes were found in this series altogether. A benchmark
+            # credited with a dozen of them is usually unstable rather than
+            # regressed a dozen times, which is worth being able to filter on.
+            'changes_in_series': len(changes),
+        })
+    return records
+
+
+def main(argv):
+    parser = argparse.ArgumentParser(description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--cache', type=pathlib.Path, default=pathlib.Path('cache'),
+        metavar='DIR', help='Directory written by fetch-series.')
+    parser.add_argument('--machine', action='append', metavar='NAME',
+        help='Machine to analyze; repeatable. Defaults to every machine in the cache.')
+    parser.add_argument('--metric', default='execution_time', metavar='NAME')
+    parser.add_argument('--test', action='append', metavar='NAME',
+        help='Analyze only this benchmark; repeatable. Useful for iterating.')
+    parser.add_argument('--limit', type=int, default=None, metavar='N',
+        help='Analyze only the first N benchmarks of each machine. Useful for iterating.')
+    parser.add_argument('--min-commits', type=int, default=None, metavar='N',
+        help='Skip a benchmark measured at fewer than this many commits. Defaults to the '
+             'fewest the detector can divide into two segments, which is twice '
+             '--min-points; raise it to skip series too short to say much.')
+    parser.add_argument('--jobs', type=int, default=None, metavar='N',
+        help='How many detectors to run at once. Defaults to the number of CPUs.')
+    parser.add_argument('--output', type=pathlib.Path, default=None,
+        help='Where to write the changes, as JSONL. Defaults to standard output.')
+    parser.add_argument('--detector', type=pathlib.Path, default=DEFAULT_DETECTOR,
+        metavar='PATH', help='The detect-changepoints script to run.')
+    parser.add_argument('--python', metavar='EXE', default=None,
+        help='Run the detector with this interpreter instead of relying on its shebang. '
+             'Needed when the modules it imports live in a virtual environment.')
+
+    passed = parser.add_argument_group(
+        'passed through to detect-changepoints',
+        'See `detect-changepoints --help` for what these mean.')
+    passed.add_argument('--aggregate', default='median', choices=('mean', 'median', 'min'))
+    passed.add_argument('--min-points', type=int, default=3)
+    passed.add_argument('--permutations', type=int, default=200)
+    passed.add_argument('--p-value', type=float, default=0.05)
+    args = parser.parse_args(argv)
+
+    if not args.detector.is_file():
+        sys.exit(f'error: no detect-changepoints at {args.detector} (pass --detector)')
+    command = ([args.python, str(args.detector)] if args.python
+               else [str(args.detector)])
+    options = ['--aggregate', args.aggregate,
+               '--min-points', str(args.min_points),
+               '--permutations', str(args.permutations),
+               '--p-value', str(args.p_value)]
+
+    if not args.cache.is_dir():
+        sys.exit(f'error: no cache directory at {args.cache} (run fetch-series first)')
+    available = {path.name[:-len(f'.{args.metric}.jsonl')]: path
+                 for path in sorted(args.cache.glob(f'*.{args.metric}.jsonl'))}
+    if not available:
+        sys.exit(f'error: {args.cache} holds no data for metric {args.metric!r}')
+    machines = args.machine or list(available)
+    for machine in machines:
+        if machine not in available:
+            sys.exit(f'error: no cached data for machine {machine!r} '
+                     f'(have: {", ".join(available)})')
+
+    minimum = args.min_commits if args.min_commits is not None else 2 * args.min_points
+    jobs = args.jobs or os.cpu_count() or 4
+    destination = args.output.open('w') if args.output else sys.stdout
+    totals = collections.Counter()
+    failures = []
+
+    try:
+        for machine in machines:
+            print(f'{machine}: reading {available[machine].name}', file=sys.stderr)
+            (series, commits) = read_cache(available[machine],
+                                           set(args.test) if args.test else None)
+            if args.test:
+                missing = set(args.test) - set(series)
+                if missing:
+                    print(f'  warning: not measured on this machine: '
+                          f'{", ".join(sorted(missing))}', file=sys.stderr)
+            candidates = sorted(series.values(), key=lambda entry: entry.test)
+            short = [entry for entry in candidates if entry.points < minimum]
+            candidates = [entry for entry in candidates if entry.points >= minimum]
+            if short:
+                print(f'  skipping {len(short)} benchmark(s) measured at fewer than '
+                      f'{minimum} commits', file=sys.stderr)
+            if args.limit is not None:
+                candidates = candidates[:args.limit]
+            if not candidates:
+                print('  nothing to analyze', file=sys.stderr)
+                continue
+
+            print(f'  analyzing {len(candidates)} benchmark(s) with {jobs} job(s)',
+                  file=sys.stderr)
+            started = time.time()
+            done = found = 0
+            with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
+                futures = {pool.submit(analyze, entry, commits, machine, args.metric,
+                                       command, options): entry
+                           for entry in candidates}
+                for future in concurrent.futures.as_completed(futures):
+                    entry = futures[future]
+                    done += 1
+                    try:
+                        for record in future.result():
+                            destination.write(json.dumps(record) + '\n')
+                            found += 1
+                    except Exception as error:      # one bad series must not stop the sweep
+                        failures.append((machine, entry.test, str(error)))
+                    if done % 250 == 0 or done == len(candidates):
+                        rate = done / max(time.time() - started, 1e-9)
+                        print(f'\r  {done}/{len(candidates)} analyzed, {found} change(s), '
+                              f'{rate:.0f}/s', end='', file=sys.stderr, flush=True)
+            print(file=sys.stderr)
+            totals['series'] += len(candidates)
+            totals['skipped'] += len(short)
+            totals['changes'] += found
+    finally:
+        if destination is not sys.stdout:
+            destination.close()
+
+    print(f'{totals["changes"]} change(s) across {totals["series"]} series '
+          f'({totals["skipped"]} skipped as too short)', file=sys.stderr)
+    if failures:
+        print(f'{len(failures)} series failed to analyze:', file=sys.stderr)
+        for (machine, test, message) in failures[:10]:
+            print(f'  {machine} {test}: {message}', file=sys.stderr)
+        if len(failures) > 10:
+            print(f'  ... and {len(failures) - 10} more', file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except KeyboardInterrupt:
+        sys.exit(130)

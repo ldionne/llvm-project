@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""
+Pull the series for one (machine, benchmark) out of a local cache as JSONL.
+
+A scaffolding tool: it linearly scans the cache file every time, which is fine
+for iterating on one benchmark at a time and hopeless for sweeping thousands.
+Something indexed will replace it once the rest of the pipeline settles.
+
+The rows come out raw, one per benchmark run, with repeated measurements of the
+same commit left as separate rows. Collapsing them is `detect-changepoints`'
+job, since it also wants the repeats in order to estimate how noisy the
+benchmark is.
+
+Usage:
+    extract-series --machine linux-x86_64-20260812 --test 'BM_align/256'
+    extract-series --machine linux-x86_64-20260812 --list-tests | grep align
+    extract-series --list-machines
+"""
+
+import argparse
+import json
+import pathlib
+import sys
+
+
+def cache_files(directory, metric):
+    """Every cache file for `metric`, as {machine name: path}."""
+    found = {}
+    for path in sorted(directory.glob(f'*.{metric}.jsonl')):
+        found[path.name[:-len(f'.{metric}.jsonl')]] = path
+    return found
+
+
+def rows_of(path):
+    for line in path.open():
+        line = line.strip()
+        if line:
+            yield json.loads(line)
+
+
+def main(argv):
+    parser = argparse.ArgumentParser(description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--cache', type=pathlib.Path, default=pathlib.Path('cache'),
+        metavar='DIR', help='Directory written by fetch-series.')
+    parser.add_argument('--machine', metavar='NAME')
+    parser.add_argument('--metric', default='execution_time', metavar='NAME')
+    parser.add_argument('--test', metavar='NAME',
+        help='Exact benchmark name. Use --list-tests to find it.')
+    parser.add_argument('--list-machines', action='store_true',
+        help='List the machines the cache holds data for, and exit.')
+    parser.add_argument('--list-tests', action='store_true',
+        help='List the benchmarks the machine holds data for, and exit.')
+    parser.add_argument('--output', type=pathlib.Path, default=None,
+        help='Where to write the records. Defaults to standard output.')
+    args = parser.parse_args(argv)
+
+    if not args.cache.is_dir():
+        sys.exit(f'error: no cache directory at {args.cache} (run fetch-series first)')
+    available = cache_files(args.cache, args.metric)
+    if not available:
+        sys.exit(f'error: {args.cache} holds no data for metric {args.metric!r}')
+
+    if args.list_machines:
+        for (machine, path) in available.items():
+            print(f'{machine}\t{path.stat().st_size // 1_000_000} MB')
+        return 0
+
+    if args.machine is None:
+        sys.exit(f'error: --machine is required (choose from: '
+                 f'{", ".join(available)})')
+    if args.machine not in available:
+        sys.exit(f'error: no cached data for machine {args.machine!r} '
+                 f'(have: {", ".join(available)})')
+    path = available[args.machine]
+
+    if args.list_tests:
+        # Printed as they are first seen rather than sorted, to avoid holding an
+        # ordering of every name in memory for no reason.
+        seen = set()
+        for row in rows_of(path):
+            if row['test'] not in seen:
+                seen.add(row['test'])
+                print(row['test'])
+        return 0
+
+    if args.test is None:
+        sys.exit('error: --test is required (use --list-tests to see what there is)')
+
+    matched = [row for row in rows_of(path) if row['test'] == args.test]
+    if not matched:
+        # A wrong name is the likeliest mistake here, and the names are long
+        # enough to get wrong in ways that are hard to spot, so offer near misses.
+        needle = args.test.lower()
+        close = sorted({row['test'] for row in rows_of(path)
+                        if needle in row['test'].lower()})[:5]
+        message = f'error: no data for test {args.test!r} on {args.machine}'
+        if close:
+            message += '\n  did you mean:\n' + '\n'.join(f'    {name}' for name in close)
+        sys.exit(message)
+
+    matched.sort(key=lambda row: (row['ordinal'], row['submitted_at']))
+    stream = args.output.open('w') if args.output else sys.stdout
+    try:
+        # The cached rows are already what detect-changepoints reads, so they go out
+        # as they came in rather than being reshaped into a narrower record.
+        for row in matched:
+            stream.write(json.dumps(row, sort_keys=True) + '\n')
+    finally:
+        if stream is not sys.stdout:
+            stream.close()
+
+    commits = len({row['ordinal'] for row in matched})
+    print(f'{len(matched)} sample(s) over {commits} commit(s)', file=sys.stderr)
+    return 0
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except KeyboardInterrupt:
+        sys.exit(130)
