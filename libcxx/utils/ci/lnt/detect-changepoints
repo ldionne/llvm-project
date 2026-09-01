@@ -117,9 +117,8 @@ def read_series(stream) -> List[Point]:
         value = float(value)
         if not math.isfinite(value):
             raise ValueError(f'line {number}: `value` is not finite: {record["value"]!r}')
-        # Every quantity this tool reports is a relative one -- the change of a benchmark,
-        # the threshold it is filtered against, the noise estimate -- so a measurement with
-        # no positive level to be relative to is one it has nothing to say about.
+        # The change this tool reports is a relative one, so a measurement with no positive
+        # level to be relative to is one it has nothing to say about.
         if value <= 0:
             raise ValueError(f'line {number}: `value` is not positive: {value!r}')
 
@@ -342,37 +341,6 @@ def describe(series: Sequence[Point], values: numpy.ndarray,
     return changes
 
 
-def noise_estimate(series: Sequence[Point]) -> Optional[float]:
-    """
-    Estimate the relative dispersion of a single sample, robustly.
-
-    Repeated samples at the same point measure the same thing, so their spread is noise
-    by construction, which makes them the estimate to prefer. Failing that, the change
-    between one point and the next is mostly noise too, as long as real changes are rare;
-    dividing by the square root of two turns the spread of those differences back into
-    the spread of a single measurement.
-
-    Returns None when there is nothing to estimate from, which is the case for a series
-    holding a single point measured a single time.
-    """
-    # Scaling that turns a robust median absolute deviation into an estimate of the standard
-    # deviation of a normal distribution.
-    MAD_TO_SIGMA = 1.4826
-
-    deviations = [abs(math.log(sample) - math.log(statistics.median(point.samples)))
-                  for point in series if len(point.samples) > 1
-                  for sample in point.samples]
-    if deviations:
-        return MAD_TO_SIGMA * statistics.median(deviations)
-
-    medians = [statistics.median(point.samples) for point in series]
-    differences = [abs(math.log(after) - math.log(before))
-                   for (before, after) in zip(medians, medians[1:])]
-    if not differences:
-        return None
-    return MAD_TO_SIGMA * statistics.median(differences) / math.sqrt(2.0)
-
-
 def analyze(series: Sequence[Point], settings: Settings,
             rng: numpy.random.Generator) -> List[Changepoint]:
     """Find and describe the changes in a series."""
@@ -404,9 +372,6 @@ def report(series: Sequence[Point], changes: Sequence[Changepoint],
     if samples > len(series):
         print(f'Combining the measurements of each point with their '
               f'{settings.aggregate}', file=out)
-    noise = noise_estimate(series)
-    if noise is not None:
-        print(f'Noise: {noise:.2%} per sample (robust estimate)', file=out)
     print(f'Detected {len(changes)} changepoint(s) at p <= {settings.p_value} using '
           f'{settings.permutations} permutations, with at least {settings.min_points} points '
           f'per segment', file=out)
