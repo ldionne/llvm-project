@@ -79,7 +79,6 @@ class Settings(NamedTuple):
     p_value: float
     permutations: int
     min_change: float
-    log: bool
     aggregate: str
 
 
@@ -124,6 +123,11 @@ def read_series(stream) -> List[Point]:
         value = float(value)
         if not math.isfinite(value):
             raise ValueError(f'line {number}: `value` is not finite: {record["value"]!r}')
+        # Every quantity this tool reports is a relative one -- the change of a benchmark,
+        # the threshold it is filtered against, the noise estimate -- so a measurement with
+        # no positive level to be relative to is one it has nothing to say about.
+        if value <= 0:
+            raise ValueError(f'line {number}: `value` is not positive: {value!r}')
 
         ordinal = record.get('ordinal')
         if has_ordinal is None:
@@ -333,7 +337,7 @@ def detect(values: numpy.ndarray, labels: Sequence[str],
     return sorted(found)
 
 
-def describe(series: Sequence[Point], levels: numpy.ndarray,
+def describe(series: Sequence[Point], values: numpy.ndarray,
              found: Sequence[Candidate]) -> List[Changepoint]:
     """
     Turn the detected points into reportable changes.
@@ -351,13 +355,13 @@ def describe(series: Sequence[Point], levels: numpy.ndarray,
     boundaries = [0] + [candidate.point for candidate in found] + [len(series)]
     changes: List[Changepoint] = []
     for (start, candidate, stop) in zip(boundaries, found, boundaries[2:]):
-        before = float(numpy.median(levels[start:candidate.point]))
-        after = float(numpy.median(levels[candidate.point:stop]))
+        before = float(numpy.median(values[start:candidate.point]))
+        after = float(numpy.median(values[candidate.point:stop]))
         changes.append(Changepoint(before_label=series[candidate.point - 1].label,
                                    after_label=series[candidate.point].label,
                                    before=before,
                                    after=after,
-                                   change=(after - before) / before if before else math.nan,
+                                   change=(after - before) / before,
                                    p_value=candidate.p_value,
                                    statistic=candidate.statistic))
     return changes
@@ -373,13 +377,9 @@ def noise_estimate(series: Sequence[Point]) -> Optional[float]:
     dividing by the square root of two turns the spread of those differences back into
     the spread of a single measurement.
 
-    Returns None when the estimate is not expressible, which is the case for a series
-    holding values that are not strictly positive: the estimate is a relative one, and
-    such a series has no level to be relative to.
+    Returns None when there is nothing to estimate from, which is the case for a series
+    holding a single point measured a single time.
     """
-    if any(sample <= 0 for point in series for sample in point.samples):
-        return None
-
     deviations = [abs(math.log(sample) - math.log(statistics.median(point.samples)))
                   for point in series if len(point.samples) > 1
                   for sample in point.samples]
@@ -404,18 +404,8 @@ def analyze(series: Sequence[Point], settings: Settings,
         return []
 
     values = flatten(series, settings.aggregate)
-    # The levels a change is reported against have to be in the unit the benchmark was
-    # measured in, so they are kept before the values move into log space.
-    levels = values
-    if settings.log:
-        if (values <= 0).any():
-            raise ValueError('the series contains values that are zero or negative, which cannot '
-                             'be analyzed in log space. Pass --no-log to analyze the values as '
-                             'they are.')
-        values = numpy.log(values)
-
     labels = [point.label for point in series]
-    changes = describe(series, levels, detect(values, labels, settings, rng))
+    changes = describe(series, values, detect(values, labels, settings, rng))
     # Filtering happens here rather than during detection so that every change is measured
     # against the segments the series was really divided into.
     if settings.min_change:
@@ -521,11 +511,6 @@ def main(argv: List[str]) -> int:
              'the knob to reach for when the output is dominated by real but uninteresting '
              'changes. It filters what is reported and never what is detected, so the segments '
              'a change is measured against are the same either way.')
-    parser.add_argument('--no-log', action='store_true',
-        help='Analyze the values as they are instead of their logarithm. By default the series is '
-             'analyzed in log space, which is what makes a change be judged by how large it is '
-             'relative to the level of the benchmark rather than in absolute terms, and which '
-             'evens out the dispersion of benchmarks whose noise grows with their duration.')
     parser.add_argument('--seed', type=int, default=0,
         help='The seed of the random number generator used to permute the points. The default is '
              'fixed so that repeated runs on the same series agree.')
@@ -563,7 +548,6 @@ def main(argv: List[str]) -> int:
 
     settings = Settings(min_points=args.min_points, p_value=args.p_value,
                         permutations=args.permutations, min_change=args.min_change,
-                        log=not args.no_log,
                         # With one measurement per point there is nothing to combine, so every
                         # method is the identity and which one is named makes no difference.
                         aggregate=args.aggregate or 'median')
